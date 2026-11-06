@@ -85,6 +85,8 @@ h1{font-family:var(--display);font-size:clamp(22px,5vw,28px);margin:0;text-wrap:
 .mark.edge span{order:0}
 .bubbles{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .bubble{position:absolute;transform:translate(-50%,-100%);background:rgba(250,245,232,.96);color:#2a1d12;border-radius:12px;padding:4px 10px;font-size:13px;max-width:200px;text-align:center;overflow-wrap:anywhere;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.bubble.typing{display:flex;gap:4px;padding:8px 12px}.bubble.typing i{width:6px;height:6px;border-radius:50%;background:#8a6a46;animation:tdot 1.1s infinite}.bubble.typing i:nth-child(2){animation-delay:.18s}.bubble.typing i:nth-child(3){animation-delay:.36s}
+@keyframes tdot{0%,60%,100%{transform:translateY(0);opacity:.45}30%{transform:translateY(-4px);opacity:1}}
 .bubble small{display:block;font-size:11px;color:#8a6a46}
 .keys{position:absolute;right:10px;bottom:56px;font-size:11.5px;color:#c9d1da;background:rgba(6,10,18,.45);padding:3px 8px;border-radius:8px;pointer-events:none}
 @media (pointer:coarse){.dpad{display:none}.act{right:max(10px,env(safe-area-inset-right,0px))}.act2{right:max(10px,env(safe-area-inset-right,0px))}}
@@ -147,7 +149,7 @@ h2{font-family:var(--display);font-size:16px;margin:0}
     <div class="bubbles" id="bubbles"></div>
     <div class="marks" id="marks"></div>
     <div class="topbar">
-      <div class="info"><span class="chip" id="hudDate">…</span><span class="chip sub" id="hudWx">…</span><span class="chip sub" id="hudJar" hidden></span><span class="chip sub" id="hudPeers" hidden></span></div>
+      <div class="info"><span class="chip" id="hudDate">…</span><span class="chip sub" id="hudWx">…</span><span class="chip sub" id="hudJar" hidden></span><span class="chip sub" id="hudPeers" hidden></span><span class="chip sub" id="hudNet" hidden></span></div>
       <div class="tbtns"><button id="vCoat" hidden>우비 벗기</button><button id="vSound" class="snd">소리 켜기</button><button id="menuBtn" aria-expanded="false" aria-controls="views">보기 ▾</button></div>
     </div>
     <div class="views" id="views" hidden>
@@ -1048,8 +1050,12 @@ function npcReply(t){if(Math.hypot(player.x-FAIRY.x,player.z-FAIRY.z)<14){say({k
   if(!g){const ppl=all.filter(c=>!c.userData.ref.kind),pp=new THREE.Vector3(player.x,0,player.z);g=(ppl.length?ppl:all).slice().sort((a,b)=>a.position.distanceTo(pp)-b.position.distanceTo(pp))[0]}
   say(npcTg(g),g.userData.ref.name,replyFor(g.userData.ref,t))}
 $('chatbar').onsubmit=e=>{e.preventDefault();const t=$('chatIn').value.trim().slice(0,80);if(!t)return;$('chatIn').value='';$('chatIn').blur();
-  say(meTg,ME().name,t);if(room&&room.connected())room.emit('chat',{t,n:ME().name}).catch(()=>{});setTimeout(()=>npcReply(t),900+Math.random()*900)};
+  typBubble('tpme',null,false);typing(false);say(meTg,ME().name,t);if(room&&room.connected())room.emit('chat',{t,n:ME().name}).catch(()=>{});setTimeout(()=>npcReply(t),900+Math.random()*900)};
 $('chatIn').addEventListener('keydown',e=>{if(e.key==='Escape')e.target.blur()});
+let typSent=0;function typing(on){const now=Date.now();if(on&&now-typSent<1500)return;typSent=on?now:0;if(room&&room.connected&&room.connected())room.emit('typing',{on:on?1:0}).catch(()=>{})}
+$('chatIn').addEventListener('input',()=>{const has=!!$('chatIn').value.trim();if(has){typBubble('tpme',meTg.pos,true);typing(true)}else{typBubble('tpme',null,false);typing(false)}});
+$('chatIn').addEventListener('blur',()=>{typBubble('tpme',null,false);typing(false)});
+function typBubble(key,pos,on){const b=bubs.find(x=>x.key===key);if(!on){if(b)b.t=0;return}if(b){b.t=5;return}const el=document.createElement('div');el.className='bubble typing';el.innerHTML='<i></i><i></i><i></i>';$('bubbles').appendChild(el);bubs.push({el,key,pos,t:5})}
 
 /* ---------- 함께 캠핑 (같은 링크를 연 가족이 실시간으로 보임) ---------- */
 let room=null,presT=0,lastPres='';const remotes=new Map();
@@ -1065,7 +1071,7 @@ function syncPeers(peers){const seen=new Set();for(const p of peers){if(p.sameTa
   if(hp){const e=hp.presence.env,one=(v,l,d)=>l.includes(v)?v:d;const nE={t:one(e.t,['live','morning','noon','dusk','night'],'live'),s:one(e.s,['live','0','1','2','3'],'live'),w:one(e.w,['auto','clear','cloudy','rain','snow'],'auto'),g:e.g===1?1:0};
     const ch=JSON.stringify(nE)!==JSON.stringify(envO);envO=nE;const nm=okS(hp.presence.n,12)||'방장';if(!hostName||ch){if(!hostName)toast(`방장 ${nm}님이 정한 캠핑장 분위기를 따라요`,3500)}hostName=nm;if((e.f===1)!==!!S.fire){S.fire=e.f===1;$('bFire').textContent=S.fire?'모닥불 끄기':'모닥불 피우기'}hudT=0}
   else if(envO){envO=null;if(hostName)toast('방장이 나갔어요. 내 분위기 설정으로 돌아왔어요',3500);hostName='';hudT=0}
-  hostUI();$('hudPeers').hidden=!remotes.size;$('hudPeers').textContent=`함께 캠핑 중 ${remotes.size+1}명${isHost()?' · 내가 방장':hostName?' · 방장 '+hostName:''}`}
+  hostUI();mpStatus();$('hudPeers').hidden=!remotes.size||!inClaude;$('hudPeers').textContent=`함께 캠핑 중 ${remotes.size+1}명${isHost()?' · 내가 방장':hostName?' · 방장 '+hostName:''}`}
 function isHost(){return !!(sbAd&&S.code&&S.hostOf===S.code)}
 function hostUI(){const guest=!!envO;$('hostNote').hidden=!(guest||isHost());$('hostNote').textContent=guest?`방장 ${hostName}님이 캠핑장 분위기(시간·계절·날씨·빛나는 들판·모닥불)를 정하고 있어요. 함께하는 동안은 방장 설정을 따라요.`:'내가 방장이에요. 여기서 바꾼 시간·계절·날씨·빛나는 들판·모닥불이 함께 있는 가족 모두에게 똑같이 적용돼요.';
   document.querySelectorAll('#segTime button,#segSeason button,#segWx button,#bLive,#bGlow,#bFire').forEach(b=>b.disabled=guest)}
@@ -1076,7 +1082,8 @@ function sendPresence(dt,moving){if(!room)return;presT-=dt;if(presT>0)return;pre
 function wireRoom(room){
   room.onPeers(ch=>syncPeers(ch.peers),()=>{});
   room.on('wish',m=>{if(m.sameTab)return;const d=m.data||{};if(d.k==='share'){const t=okS(d.t,60),n=okS(d.n,12)||'가족';if(t){logChat(`${n}님의 소원`,t);toast(`${n}님이 소원을 나눠 줬어요`)}return}const x=Math.max(-100,Math.min(100,+d.x||0)),z=Math.max(-100,Math.min(100,+d.z||0));if(d.k==='boat')spawnBoat(x,1);else spawnLantern(x,z,1)},()=>{});
-  room.on('chat',m=>{if(m.sameTab)return;const d=m.data||{},t=okS(d.t,80);if(!t)return;const name=okS(d.n,12)||'가족',r=remotes.get(m.peer);
+  room.on('typing',m=>{if(m.sameTab)return;const r=remotes.get(m.peer);if(!r)return;typBubble('tp'+m.peer,v=>v.set(r.g.position.x,r.g.position.y+(r.pose==='sit'?1.75:2.05),r.g.position.z),!!(m.data&&m.data.on))},()=>{});
+  room.on('chat',m=>{if(m.sameTab)return;typBubble('tp'+m.peer,null,false);const d=m.data||{},t=okS(d.t,80);if(!t)return;const name=okS(d.n,12)||'가족',r=remotes.get(m.peer);if(!r)toast(`${okS(d.n,12)||'가족'}: ${t}`,3500);
     if(r)say({key:'p'+m.peer,pos:v=>v.set(r.g.position.x,r.g.position.y+(r.pose==='sit'?1.75:2.05),r.g.position.z)},name,t);else logChat(name,t)},()=>{})}
 const SB_URL='https://mrvovskylnnfrblzaijc.supabase.co',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ydm92c2t5bG5uZnJibHphaWpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5NDg1NDUsImV4cCI6MjEwOTUyNDU0NX0.xwpEQJwBV_wBbyKKQFxXv0alI3xUWIqZiXfA2FAli6I';
 const inClaude=!!(window.claude&&window.claude.use);let sbClient=null,sbAd=null,presGap=.12;
@@ -1084,16 +1091,20 @@ function loadScript(src){return new Promise((ok,no)=>{const sc=document.createEl
 async function sbRoom(code){if(!window.supabase){try{await loadScript('supabase.js')}catch(e){await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js')}}
   if(!sbClient)sbClient=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false},realtime:{params:{eventsPerSecond:10}}});
   const me=crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2),ch=sbClient.channel('camp-'+code,{config:{presence:{key:me},broadcast:{self:false}}}),H={},PF=[];let ok=false;
-  ['chat','wish'].forEach(t=>ch.on('broadcast',{event:t},({payload})=>(H[t]||[]).forEach(f=>f({data:payload&&payload.d,peer:payload&&payload.p,sameTab:false}))));
+  ['chat','wish','typing'].forEach(t=>ch.on('broadcast',{event:t},({payload})=>(H[t]||[]).forEach(f=>f({data:payload&&payload.d,peer:payload&&payload.p,sameTab:false}))));
   ch.on('presence',{event:'sync'},()=>{const st=ch.presenceState(),peers=Object.entries(st).map(([k,arr])=>({peer:k,presence:arr[arr.length-1],kind:'viewer',sameTab:k===me}));PF.forEach(f=>f({peers}))});
-  await new Promise(res=>{const t=setTimeout(res,10000);ch.subscribe(st=>{if(st==='SUBSCRIBED'){ok=true;clearTimeout(t);res()}else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'){clearTimeout(t);res()}})});
-  return{connected:()=>ok,on:(t,f)=>{(H[t]=H[t]||[]).push(f)},onPeers:f=>{PF.push(f)},emit:(t,d)=>ch.send({type:'broadcast',event:t,payload:{d,p:me}}).then(()=>{}),presence:o=>Promise.resolve(ch.track(o)).then(()=>{}),leave:()=>sbClient.removeChannel(ch)}}
-async function joinCamp(code){code=(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8);if(code.length<4){toast('캠핑 코드는 4글자 이상이에요');return}
+  await new Promise(res=>{const t=setTimeout(res,10000);ch.subscribe(st=>{if(st==='SUBSCRIBED'){ok=true;clearTimeout(t);res();mpStatus()}else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'||st==='CLOSED'){ok=false;clearTimeout(t);res();mpStatus()}})});
+  return{connected:()=>ok,on:(t,f)=>{(H[t]=H[t]||[]).push(f)},onPeers:f=>{PF.push(f)},emit:(t,d)=>ch.send({type:'broadcast',event:t,payload:{d,p:me}}).then(()=>{}),presence:o=>Promise.resolve(ch.track(o)).then(()=>{}),leave:()=>{ok=false;sbClient.removeChannel(ch)}}}
+async function joinCamp(code,quiet){code=(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8);if(code.length<4){toast('캠핑 코드는 4글자 이상이에요');return}
   if(sbAd){try{sbAd.leave()}catch(e){}sbAd=null;room=null;syncPeers([])}$('mpState').textContent='연결하는 중…';
   try{sbAd=await sbRoom(code)}catch(e){sbAd=null}
-  if(!sbAd||!sbAd.connected()){$('mpState').textContent='연결하지 못했어요. 인터넷을 확인하고 다시 눌러 주세요';sbAd=null;return}
+  if(!sbAd||!sbAd.connected()){$('mpState').textContent='연결하지 못했어요. 인터넷을 확인하면 자동으로 다시 연결해요';sbAd=null;mpStatus();return}
   room=sbAd;presGap=.25;lastPres='';wireRoom(room);S.code=code;save();$('mpCode').textContent=code;$('mpState').textContent=S.hostOf===code?'연결됨 · 내가 만든 캠핑장이라 내가 방장이에요':'연결됨 · 같은 코드로 들어온 가족이 함께 보여요';hostUI();$('mpIn').value='';$('mpOn').hidden=false;
-  try{history.replaceState(null,'','#camp-'+code)}catch(e){}toast(`'${code}' 캠핑장에 들어왔어요. 초대 링크를 가족에게 보내 주세요`,4000)}
+  try{history.replaceState(null,'','#camp-'+code)}catch(e){}mpStatus();if(!quiet)toast(`'${code}' 캠핑장에 들어왔어요. 초대 링크를 가족에게 보내 주세요`,4000)}
+function mpStatus(){const c=$('hudNet');if(!c)return;if(!sbAd&&!inClaude){c.hidden=true;return}if(inClaude){c.hidden=true;return}c.hidden=false;const on=sbAd&&sbAd.connected();
+  c.innerHTML='';const d=document.createElement('b');d.style.cssText=`display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px;background:${on?'#7be08a':'#ff7a6b'}`;c.append(d,document.createTextNode(on?`캠핑장 ${S.code} · ${remotes.size+1}명`:`캠핑장 ${S.code} · 다시 연결 중`))}
+let rejoinT=0;function ensureCamp(){if(inClaude||!S.code||(sbAd&&sbAd.connected()))return;const now=Date.now();if(now-rejoinT<4000)return;rejoinT=now;joinCamp(S.code,true)}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){ensureCamp();lastPres=''}});setInterval(()=>{ensureCamp();lastPres='';mpStatus()},5000);
 function leaveCamp(){if(sbAd){try{sbAd.leave()}catch(e){}}sbAd=null;room=null;syncPeers([]);envO=null;hostName='';S.code='';save();$('mpOn').hidden=true;$('mpState').textContent='혼자 캠핑 중이에요';try{history.replaceState(null,'',location.pathname)}catch(e){}}
 if(inClaude){(async()=>{try{room=await window.claude.use('room')}catch(e){room=null}if(room)wireRoom(room)})();$('mpBox').hidden=true}
 else{$('mpNew').onclick=()=>{const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let c='';for(let i=0;i<6;i++)c+=A[Math.random()*A.length|0];S.hostOf=c;save();joinCamp(c)};
