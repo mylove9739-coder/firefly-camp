@@ -54,6 +54,7 @@ h1{font-family:var(--display);font-size:clamp(22px,5vw,28px);margin:0;text-wrap:
 .choice .cb{display:flex;gap:8px;justify-content:center;margin-top:10px}.choice button{border:none;border-radius:999px;padding:9px 18px;font-weight:700;font-size:14px;background:#f2ecdc;color:#13202c}.choice button.hot{background:#ffd27a;color:#2a1d12}
 .stage.sledding .act,.stage.sledding .act2,.stage.sledding .pills{display:none!important}
 .choice.low{top:auto;bottom:112px;transform:translateX(-50%);max-width:calc(100% - 24px)}.choice .cb{flex-wrap:wrap}
+.chip.warn{background:#b3261e;color:#fff;animation:blink 1s infinite}@keyframes blink{50%{opacity:.45}}
 .fade{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .4s;z-index:5}
 .pills{position:absolute;left:10px;bottom:58px;display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;max-width:calc(100% - 320px)}.pills button{flex:none}
 .pills button{background:rgba(6,10,18,.62);border:1px solid rgba(255,255,255,.18);color:#f2ecdc;border-radius:999px;padding:7px 12px;font-size:13px;backdrop-filter:blur(4px)}
@@ -157,12 +158,12 @@ h2{font-family:var(--display);font-size:16px;margin:0}
     <div class="bubbles" id="bubbles"></div>
     <div class="marks" id="marks"></div>
     <div class="topbar">
-      <div class="info"><span class="chip" id="hudDate">…</span><span class="chip sub" id="hudWx">…</span><span class="chip sub" id="hudJar" hidden></span><span class="chip sub" id="hudPeers" hidden></span><span class="chip sub" id="hudNet" hidden></span></div>
+      <div class="info"><span class="chip" id="hudDate">…</span><span class="chip sub" id="hudWx">…</span><span class="chip sub" id="hudJar" hidden></span><span class="chip warn" id="hudFlood" hidden>⚠ 시냇물이 불어나고 있어요</span><span class="chip sub" id="hudPeers" hidden></span><span class="chip sub" id="hudNet" hidden></span></div>
       <div class="tbtns"><button id="vCoat" hidden>우비 벗기</button><button id="vSound" class="snd">소리 켜기</button><button id="menuBtn" aria-expanded="false" aria-controls="views">보기 ▾</button></div>
     </div>
     <div class="views" id="views" hidden>
       <div class="vgrp"><span>시점</span><div><button id="vThird" aria-pressed="true">3인칭</button><button id="vFirst" aria-pressed="false">1인칭</button></div></div>
-      <div class="vgrp"><span>쉬어 가기</span><div><button id="vStars" aria-pressed="false">누워서 별보기</button><button id="vStream" aria-pressed="false">시냇가에 앉기</button></div></div>
+      <div class="vgrp"><span>쉬어 가기</span><div><button id="vStars" aria-pressed="false">누워서 별보기</button><button id="vStream" aria-pressed="false">시냇가에 앉기</button><button id="vLie">아무 데나 눕기</button></div></div>
       <div class="vgrp"><span>소지품</span><div><button id="vNet" aria-pressed="false">잠자리채 꺼내기</button><button id="vDuck" hidden>눈오리 집게 꺼내기</button></div></div>
       <div class="vgrp"><span>순간 이동</span><div><button id="vCampGo">캠프로</button><button id="vTree">소원나무로</button></div></div>
     </div>
@@ -206,6 +207,7 @@ h2{font-family:var(--display);font-size:16px;margin:0}
     <div class="panel">
       <div class="pane" id="p-camp">
         <div class="field"><span class="lbl">캠핑 종류</span><div class="camps" id="camps"></div></div>
+        <div class="field"><span class="lbl">캠핑장 위치</span><div class="seg" id="segSite"><button data-v="0">강가</button><button data-v="1">언덕 위</button></div></div>
         <div class="field"><span class="lbl">화질</span><div class="seg" id="segQ"></div></div>
         <div class="seg"><button id="bFire">모닥불 끄기</button></div>
         <div class="field"><label class="lbl" for="campNm">우리 캠핑자리 이름</label><div class="seg"><input type="text" id="campNm" maxlength="14" placeholder="예: 별빛 캠핑장" style="flex:1;min-width:0"><button id="bCampNm">이름 정하기</button></div></div>
@@ -220,6 +222,7 @@ h2{font-family:var(--display);font-size:16px;margin:0}
         <div class="field"><span class="lbl">시간</span><div class="seg" id="segTime"></div></div>
         <div class="field"><span class="lbl">계절</span><div class="seg" id="segSeason"></div></div>
         <div class="field"><span class="lbl">날씨</span><div class="seg" id="segWx"></div></div>
+        <div class="field"><span class="lbl">강수량</span><input type="range" id="rainAmt" min="0.2" max="2" step="0.1" style="flex:1;accent-color:#ffd27a"><b id="rainAmtL" style="min-width:3.5em;text-align:right">보통</b></div>
         <p class="note">'지금'은 이 기기의 날짜와 시각을 그대로 써요. '오늘 날씨'는 실제 일기예보를 불러오지 못해서, 계절에 맞게 날짜별로 정해지는 숲 날씨예요.</p>
       </div>
       <div class="pane" id="p-sound" hidden>
@@ -262,7 +265,7 @@ setTimeout(()=>$('toast').style.opacity=0,5000);
 const sst=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t)};
 const lerp=(a,b,t)=>a+(b-a)*t;
 const zs=x=>-16+6*Math.sin(x*.04)+3*Math.sin(x*.09+1);
-const TCX=-8.95,TCZ=-3.42,TDX=.9333,TDZ=.3569,TRAD=4.2;
+let TCX=-8.95,TCZ=-3.42,TDX=.9333,TDZ=.3569;const TRAD=4.2;
 const hRaw=(x,z)=>2.2*Math.sin(x*.03)*Math.cos(z*.025)+Math.sin(x*.07+z*.05)+.5*Math.sin(x*.15-z*.11)+Math.max(0,Math.hypot(x,z)-55)*.2+Math.min(28.5,30*Math.exp(-((x-25)**2+(z+78)**2)/800));
 function GH(x,z){let h=hRaw(x,z)*sst(5,15,Math.hypot(x,z));const d=Math.abs(z-zs(x));return h-1.9*(1-sst(1.5,6.5,d))}
 const PK={x:25,z:-78};
@@ -440,16 +443,68 @@ const tong=new THREE.Group();{const ym=clay('#ffcf3a'),om=clay('#ff8a3d');[-1,1]
 const duckOK=()=>curSeason===3&&S.snowAcc>.5;
 function duckUI(){const ok=duckOK();$('vDuck').hidden=!ok;if(!ok&&S.duckOut)S.duckOut=false;$('vDuck').textContent=S.duckOut?'눈오리 집게 넣기':'눈오리 집게 꺼내기'}
 let duckR=null;
-function makeDuck(){if(duckR||!player.stand)return;if(roomAt()){toast('밖으로 나가서 눈 위에서 만들어요');return}if(S.ducks.length>=40){toast('눈오리가 40마리나 있어요! 오래된 눈오리부터 녹여 줄게요',2200);S.ducks.shift()}clearTgt();duckR={t:0,done:false}}
+function makeDuck(){if(duckR||!player.stand)return;if(roomAt()){toast('밖으로 나가서 눈 위에서 만들어요');return}if(S.ducks.length>=40){if(!S.duckFull)S.duckFull=Date.now();const left=600000-(Date.now()-S.duckFull);if(left>0){toast(`눈오리 40마리 완성! ${Math.ceil(left/60000)}분 뒤에 새로 40마리를 만들 수 있어요`,2600);return}S.ducks=[];S.duckFull=0;save();buildDucks();toast('눈이 다시 뭉쳐졌어요. 새로 40마리를 만들어 봐요',2200)}clearTgt();duckR={t:0,done:false}}
 function updDuck(dt){const R=duckR;if(!R||!player.stand)return;R.t+=dt;const t=R.t,e=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)},k=ME().role==='child'?.8:1,legs=player.stand.userData.legs,A=player.stand.userData.arms;
   const q=t<.5?e(t/.5):t<1.5?1:1-e((t-1.5)/.5);player.stand.position.y=-.3*k*q;legs.forEach(l=>l.rotation.x=-1.35*q);A[1].rotation.x=-.6*q-(t>.6&&t<1.3?.25*Math.sin((t-.6)*9):0);
   if(t>.7&&!R.sq){R.sq=1;if(ac&&soundOn){const n=ac.currentTime;for(let i=0;i<5;i++)burst(master,n+i*.06,500+Math.random()*700,1.2,1.1,.5,0,.07)}}
-  if(t>1.25&&!R.done){R.done=true;const fx=Math.sin(player.ry),fz=Math.cos(player.ry),x=player.x+fx*.75+(Math.random()-.5)*.2,z=player.z+fz*.75+(Math.random()-.5)*.2;S.ducks.push({x:+x.toFixed(2),z:+z.toFixed(2),ry:+(player.ry+Math.PI+(Math.random()-.5)*.8).toFixed(2)});save();buildDucks();sfx('catch');toast(pick(['꽥! 눈오리 한 마리 완성','동글동글 눈오리가 태어났어요','눈오리 친구가 늘었어요']),1600)}
+  if(t>1.25&&!R.done){R.done=true;const fx=Math.sin(player.ry),fz=Math.cos(player.ry),x=player.x+fx*.75+(Math.random()-.5)*.2,z=player.z+fz*.75+(Math.random()-.5)*.2;S.ducks.push({x:+x.toFixed(2),z:+z.toFixed(2),ry:+(player.ry+Math.PI+(Math.random()-.5)*.8).toFixed(2)});if(S.ducks.length>=40){S.duckFull=Date.now();setTimeout(()=>toast('눈오리 40마리 완성! 10분 뒤에 새로 만들 수 있어요',3000),1700)}save();buildDucks();sfx('catch');toast(S.ducks.length+'번째 '+pick(['눈오리 완성! 꽥','눈오리가 태어났어요','눈오리 친구가 늘었어요']),1600)}
   if(t>2){player.stand.position.y=0;legs.forEach(l=>l.rotation.x=0);duckR=null}}
 const iceM=new THREE.MeshLambertMaterial({color:0xe6f3fb,transparent:true,opacity:.88}),ice=new THREE.InstancedMesh(new THREE.CircleGeometry(1,9),iceM,80);{const o=new THREE.Object3D(),r=rng(77);let n=0;for(let i=0;i<80;i++){const x=-110+r()*220;if(Math.abs(x-10)<4){continue}const off=(r()-.5)*3.6;o.position.set(x,GH(x,zs(x))+.53,zs(x)+off);o.rotation.set(-Math.PI/2,0,r()*6);o.scale.set(.8+r()*2.2,.5+r()*1,1);o.updateMatrix();ice.setMatrixAt(n,o.matrix);ice.setColorAt(n,C('#e6f3fb').offsetHSL(0,0,(r()-.5)*.08));n++}ice.count=n}ice.visible=false;scene.add(ice);
 function updWinter(dt){if(curSeason===3&&env.snow>.4)S.snowAcc=Math.min(1,S.snowAcc+dt/150);else if(curSeason!==3&&S.snowAcc>0)S.snowAcc=Math.max(0,S.snowAcc-dt/20);
   if(Math.abs(S.snowAcc-paintedAcc)>.04&&curSeason===3)paintGround(3);ice.visible=curSeason===3;ducksG.visible=curSeason===3&&S.snowAcc>.3;
-  tong.visible=!!S.duckOut&&player.pose==='walk'&&!wishHold&&!boatR&&!bung;updDuck(dt);updBung(dt);if(Math.random()<dt)duckUI()}
+  tong.visible=!!S.duckOut&&player.pose==='walk'&&!wishHold&&!boatR&&!bung;updDuck(dt);updBung(dt);updBalls(dt);updComers(dt);updFlood(dt);fallen.visible=curSeason===2;acorns.visible=curSeason===0;if(Math.random()<dt)duckUI()}
+/* 눈싸움 */
+const balls=[],ballGeo=new THREE.SphereGeometry(.11,10,8),clumps=new THREE.Group();scene.add(clumps);
+const splP=particles(120,THREE.NormalBlending),spl=[];for(let i=0;i<120;i++)spl.push({t:9,p:new THREE.Vector3(),v:new THREE.Vector3()});
+const fightOK=()=>curSeason===3&&S.snowAcc>.6;let lastFight=-99,npcNext=0,throwA=0;
+function splatAt(p,big){let n=big?20:12;for(const q of spl){if(q.t>.7&&n-->0){q.t=0;q.p.copy(p);q.v.set((Math.random()-.5)*3,Math.random()*2.6,(Math.random()-.5)*3)}}if(ac&&soundOn){const n0=ac.currentTime;burst(master,n0,650,1,1.3,.6,0,.09);burst(master,n0+.02,2400,1.5,.5,1,0,.05)}}
+function addClump(p,par){const m=new THREE.Mesh(new THREE.SphereGeometry(.14,10,8),snowW);m.scale.set(1,.55,1);if(par){par.worldToLocal(m.position.copy(p));par.add(m);setTimeout(()=>par.remove(m),25000)}else{m.position.copy(p);clumps.add(m);if(clumps.children.length>80)clumps.remove(clumps.children[0])}}
+function throwBall(from,vel,own,name){const m=new THREE.Mesh(ballGeo,snowW);m.position.copy(from);m.castShadow=true;scene.add(m);balls.push({m,v:vel.clone(),own,name,t:0})}
+function myThrow(){if(throwA>0)return;throwA=.45;lastFight=T;const d=new THREE.Vector3();if(viewMode==='first')cam.getWorldDirection(d);else d.set(Math.sin(player.ry),.18,Math.cos(player.ry));d.normalize();
+  setTimeout(()=>{const from=new THREE.Vector3(player.x+d.x*.4,WH(player.x,player.z)+player.lift+1.35,player.z+d.z*.4),v=d.clone().multiplyScalar(13);v.y+=3.6;throwBall(from,v,'me',ME().name);if(ac&&soundOn)burst(master,ac.currentTime,900,.8,.8,.7,0,.15);
+    if(room&&room.connected())room.emit('wish',{k:'snow',x:from.x,y:from.y,z:from.z,vx:v.x,vy:v.y,vz:v.z,n:ME().name}).catch(()=>{})},220)}
+function lobTo(from,tx,ty,tz,sp=11){const dx=tx-from.x,dz=tz-from.z,dh=Math.hypot(dx,dz)||1,Tt=dh/sp;return new THREE.Vector3(dx/Tt,(ty-from.y+4.9*Tt*Tt)/Tt,dz/Tt)}
+function npcThrow(g){const ref=g.children[0]&&g.userData;const from=g.position.clone().add(new THREE.Vector3(0,1.3,0));throwBall(from,lobTo(from,player.x,WH(player.x,player.z)+.9,player.z),'npc',(g.userData.nm)||'가족')}
+function updBalls(dt){if(throwA>0){throwA-=dt;const A=player.stand&&player.stand.userData.arms;if(A){const t=.45-throwA;A[1].rotation.x=t<.2?2.2*(t/.2):2.2-4.6*Math.min(1,(t-.2)/.15)}if(throwA<=0&&A)A[1].rotation.x=0}
+  const P=splP.geometry.attributes;spl.forEach((q,i)=>{q.t+=dt;q.v.y-=7*dt;q.p.addScaledVector(q.v,dt);P.position.array.set([q.p.x,q.p.y,q.p.z],i*3);P.aC.array.set([1,1,1,Math.max(0,.95-q.t*1.4)],i*4);P.aS.array[i]=.13});P.position.needsUpdate=P.aC.needsUpdate=P.aS.needsUpdate=true;
+  if(fightOK()&&T-lastFight<40&&T>npcNext&&fam.children.length){npcNext=T+2.5+Math.random()*3.5;const g=pick(fam.children);if(g.position.distanceTo(new THREE.Vector3(player.x,g.position.y,player.z))<16)npcThrow(g)}
+  for(let i=balls.length-1;i>=0;i--){const b=balls[i],p=b.m.position;b.t+=dt;b.v.y-=9.8*dt;p.addScaledVector(b.v,dt);let hit=null;
+    if(b.own==='me'){for(const g of fam.children){if(_v1.set(g.position.x,g.position.y+.9,g.position.z).distanceTo(p)<.55){hit='npc';const nm=(g.children[0]&&g.traverse&&g.userData.nm)||'가족';const lines=['앗 차가워!','하하 맞았다! 나도 간다!','에잇, 받아라!','눈싸움 좋아!'];say({key:'npc'+g.id,pos:v=>v.copy(g.position).add(new THREE.Vector3(0,2,0))},nm,pick(lines));setTimeout(()=>npcThrow(g),900+Math.random()*700);break}}
+      if(!hit)for(const [,r] of remotes){if(_v1.set(r.g.position.x,r.g.position.y+.9,r.g.position.z).distanceTo(p)<.55){hit='remote';toast(`${r.name}님에게 명중!`,1500);break}}
+      if(!hit)for(const A of animals){if(!A.g.visible)continue;const rr=A.dl?.9:A.kind==='rabbit'?.45:.65,hy=A.dl?1.1:A.kind==='rabbit'?.25:.6;if(Math.hypot(p.x-A.x,p.z-A.z)<rr&&Math.abs(p.y-(GH(A.x,A.z)+hy))<hy+.3){hit='animal';addClump(p,A.g);A.flee=0;A.come=false;const ax=A.x-player.x,az=A.z-player.z,l=Math.hypot(ax,az)||1;A.tx=A.x+ax/l*12;A.tz=A.z+az/l*12;A.st='walk';A.flee=1;break}}}
+    else{if(_v1.set(player.x,WH(player.x,player.z)+player.lift+.9,player.z).distanceTo(p)<.6){hit='me';const f=$('fade');f.style.opacity=.55;setTimeout(()=>f.style.opacity=0,160);toast(`${b.name}의 눈덩이에 맞았어요! 퍽`,1600);lastFight=T}}
+    if(!hit)for(const t of trees){if(Math.abs(p.x-t.x)>2.5*t.s||Math.abs(p.z-t.z)>2.5*t.s)continue;const hd=Math.hypot(p.x-t.x,p.z-t.z),h=p.y-t.y;if((hd<.35*t.s&&h<4*t.s&&h>0)||(!t.pine&&hd<1.85*t.s&&h>2.4*t.s&&h<5.8*t.s)||(t.pine&&hd<(1.6-(h/(6*t.s))*1.4)*t.s&&h>1.2*t.s&&h<6*t.s)){hit='tree';addClump(p);break}}
+    if(!hit&&p.y<GH(p.x,p.z)+.05){hit='ground';p.y=GH(p.x,p.z)+.05}
+    if(hit||b.t>5){if(hit)splatAt(p,hit!=='ground');scene.remove(b.m);balls.splice(i,1)}}}
+const _v1=new THREE.Vector3();
+/* 아무 데나 눕기 · 동물 다가오기 */
+let lieT=0,comers=0;
+function lieHere(){clearTgt();if(roomAt()){curAct='tent';doAct();return}const dPK=Math.hypot(player.x-PK.x,player.z-PK.z);let yaw=Math.PI-player.ry,pitch=1.0;
+  if(dPK<12){const a=Math.atan2(player.x-PK.x,player.z-PK.z);player.x=PK.x+Math.sin(a)*4;player.z=PK.z+Math.cos(a)*4;const dx=PK.x-player.x,dz=PK.z-player.z;player.ry=Math.atan2(-dx,-dz);yaw=Math.atan2(dx,-dz);pitch=.62}
+  setPose('lie');look.yaw=yaw;look.pitch=pitch;viewMode='stars';['Third','First','Stars','Stream'].forEach(n=>$('v'+n).setAttribute('aria-pressed',n==='Stars'));toast(dPK<12?'소원나무 아래 누웠어요. 반짝이는 가지가 하늘을 덮어요':'풀밭에 벌러덩 누웠어요. 하늘을 끌어서 둘러보세요',3000)}
+function updComers(dt){const lying=player.pose==='lie'&&viewMode==='stars'&&!roomAt();if(!lying){if(comers){animals.forEach(A=>{if(A.come){A.come=false;A.t=0;A.st='idle'}});comers=0}lieT=0;return}
+  lieT+=dt;if(comers<6&&lieT>8+comers*9){const c=animals.filter(A=>A.g.visible&&!A.come&&A.kind!=='wolf'&&Math.hypot(A.x-player.x,A.z-player.z)<70).sort((a,b)=>Math.hypot(a.x-player.x,a.z-player.z)-Math.hypot(b.x-player.x,b.z-player.z))[0];
+    if(c){c.come=true;c.flee=0;const a=Math.random()*6.283,r=(c.dl?3.2:1.8)+Math.random()*1.2;c.tx=player.x+Math.cos(a)*r;c.tz=player.z+Math.sin(a)*r;c.st='walk';c.next='idle';c.sp=c.dl?.9:1.1;comers++;
+      setTimeout(()=>{if(c.come)toast({rabbit:'토끼가 살금살금 다가와 옆에 앉았어요',deer:'사슴이 조용히 다가와 곁에 머물러요',reindeer:'순록이 천천히 다가와 곁에 서요',fox:'북극여우가 살며시 다가와 몸을 웅크려요'}[c.kind]||'동물 친구가 다가왔어요',3000)},6000)}}}
+/* 가을 낙엽 · 봄 도토리 */
+const fallen=new THREE.InstancedMesh(new THREE.PlaneGeometry(.16,.11),new THREE.MeshLambertMaterial({side:THREE.DoubleSide}),leafs.length*16);{const o=new THREE.Object3D(),r=rng(31);let n=0;leafs.forEach(t=>{for(let j=0;j<16;j++){const a=r()*6.283,d=Math.sqrt(r())*2.3*t.s,x=t.x+Math.cos(a)*d,z=t.z+Math.sin(a)*d;o.position.set(x,GH(x,z)+.03,z);o.rotation.set(-Math.PI/2,0,r()*6);o.scale.setScalar(.8+r()*.7);o.updateMatrix();fallen.setMatrixAt(n,o.matrix);fallen.setColorAt(n,C(t.r>.62?'#f2cf3a':['#d9412b','#e3803a','#c4553a','#f0a030','#a8432e'][Math.floor(r()*5)]));n++}})}fallen.visible=false;fallen.receiveShadow=true;scene.add(fallen);
+const acorns=new THREE.Group();{const am=new THREE.InstancedMesh(new THREE.SphereGeometry(.045,8,6),clay('#9a6a3a'),220),cm=new THREE.InstancedMesh(new THREE.SphereGeometry(.05,8,4,0,Math.PI*2,0,Math.PI/2),clay('#5a3d22'),220),o=new THREE.Object3D(),r=rng(41);let n=0;
+  while(n<220){const p2=inField(r);if(!p2)continue;const[x,z]=p2,y=GH(x,z);o.position.set(x,y+.05,z);o.rotation.set(0,0,Math.PI/2+(r()-.5));o.scale.set(1,1.35,1);o.updateMatrix();am.setMatrixAt(n,o.matrix);o.position.set(x+Math.cos(o.rotation.z)*.0,y+.05,z);o.updateMatrix();cm.setMatrixAt(n,o.matrix);n++}acorns.add(am,cm)}acorns.visible=false;scene.add(acorns);
+/* 장마·태풍: 물 불어남 · 경고등 · 캠핑장 옮기기 */
+let flood=S.flood||0,floodAsked=false,curSite=0;
+const warnPole=new THREE.Group();{const pl=new THREE.Mesh(new THREE.CylinderGeometry(.06,.07,2.2,8),lam(0xe8e2d0));pl.position.y=1.1;warnPole.add(pl);const bd=new THREE.Mesh(new THREE.BoxGeometry(.7,.45,.05),lam(0xffd23a));bd.position.y=1.7;warnPole.add(bd);
+  const lt=new THREE.Mesh(new THREE.SphereGeometry(.13,12,8),new THREE.MeshBasicMaterial({color:0x551111}));lt.position.y=2.32;warnPole.add(lt);const lg=new THREE.Sprite(new THREE.SpriteMaterial({map:softTex,color:0xff3020,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:0}));lg.position.y=2.32;lg.scale.set(2.2,2.2,1);warnPole.add(lg);warnPole.userData={lt,lg}}
+{const x=-2,z=zs(-2)+5.2;warnPole.position.set(x,GH(x,z),z);warnPole.rotation.y=Math.PI;scene.add(warnPole);warnPole.traverse(o=>o.userData.tap='warn')}
+const SITES=[[-6.8,-2.6],[-9,10]];
+function relocate(site,quiet){curSite=site;const[x,z]=SITES[site];campPos.set(x,0,z);const l=Math.hypot(x,z);TDX=-x/l;TDZ=-z/l;TCX=x-TDX*2.3;TCZ=z-TDZ*2.3;Object.assign(MAINROOM,{x:TCX,z:TCZ,dx:TDX,dz:TDZ});VRc=null;
+  Object.values(campObj).forEach(o=>{o.position.copy(campPos);o.lookAt(0,0,0)});[campObj.tent,campObj.glamp,campObj.van].forEach(T_=>{T_.userData.ti.position.y=(T_===campObj.van?GH(campPos.x-TDX*.3,campPos.z-TDZ*.3)+.05:GH(TCX,TCZ))-campPos.y});
+  campSign.position.set(campPos.x+3.2*(site?1:1),GH(campPos.x+3.2,campPos.z+2.4),campPos.z+2.4);setCamp(S.camp,true);
+  {const o=new THREE.Object3D(),m=new THREE.Matrix4();for(let i=0;i<grass.count;i++){grass.getMatrixAt(i,m);m.decompose(o.position,o.quaternion,o.scale);if(o.scale.x<.01&&!o.userData.k)continue;const near=Math.hypot(o.position.x-TCX,o.position.z-TCZ)<TRAD+.2||Math.hypot(o.position.x-x,o.position.z-z)<4.2;if(near&&o.scale.x>.01){o.scale.set(.0001,.0001,.0001);o.updateMatrix();grass.setMatrixAt(i,o.matrix)}}grass.instanceMatrix.needsUpdate=true}
+  document.querySelectorAll('#segSite button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===site));if(!quiet)toast(site?'캠핑장을 높은 언덕 위로 옮겼어요. 이제 물이 불어나도 안전해요':'캠핑장을 다시 강가로 옮겼어요',3200)}
+function updFlood(dt){const raining=env.rain>.5;if(raining)flood=Math.min(1,flood+dt*env.rain*(.25+.75*(S.rainAmt??1))*(1+env.storm*2.2)/260);else flood=Math.max(0,flood-dt/150);S.flood=flood;
+  water.position.y=flood*.7;const w=flood>.45;$('hudFlood').hidden=!w;const u=warnPole.userData,bl=w&&Math.sin(T*6)>0;u.lt.material.color.set(bl?'#ff2a1a':'#551111');u.lg.material.opacity=bl?.9:0;
+  if(w&&!floodAsked&&curSite===0&&!worldO){floodAsked=true;ask('시냇물이 불어나고 있어요! 캠핑장을 높은 언덕 위로 옮길까요?',[['언덕으로 옮기기',()=>{S.campSite=1;save();relocate(1)}],['괜찮아요',null]],true)}if(flood<.2)floodAsked=false;
+  const want=worldO?(worldO.s||0):(S.campSite||0);if(want!==curSite)relocate(want,true)}
 /* 붕어빵 */
 let bung=null;
 function fishMesh(){const g=new THREE.Group(),sh=new THREE.Shape();sh.absellipse(0,0,.085,.045,0,Math.PI*2);const tl=new THREE.Shape();tl.moveTo(-.07,0);tl.lineTo(-.13,.045);tl.lineTo(-.12,-.045);tl.lineTo(-.07,0);
@@ -510,7 +565,7 @@ function ffAnchor(f){const r=Math.random,k=r();let x,z;if(k<.45){x=(r()-.5)*120;
   Object.assign(f,{x,z,g:GH(x,z),h:.4+r()*2.6,p:r()*9,s:.5+r(),c:-1,away:0,vis:0})}
 for(let i=0;i<NFF;i++){const f={};ffAnchor(f);ff.push(f)}
 const jarDots=particles(30,THREE.AdditiveBlending);
-const ND=2200,drift=particles(ND,THREE.NormalBlending),dr=[];for(let i=0;i<ND;i++)dr.push({x:0,y:-999,z:0,p:Math.random()*9});
+let lastDM='';const ND=2200,drift=particles(ND,THREE.NormalBlending),dr=[];for(let i=0;i<ND;i++)dr.push({x:0,y:-999,z:0,p:Math.random()*9});
 const NR=1800,rainP=new Float32Array(NR*6),rainG=new THREE.BufferGeometry();rainG.setAttribute('position',new THREE.BufferAttribute(rainP,3));
 const rain=new THREE.LineSegments(rainG,new THREE.LineBasicMaterial({color:0xaabbcc,transparent:true,opacity:.45,fog:false}));rain.frustumCulled=false;scene.add(rain);
 
@@ -787,7 +842,7 @@ function pickAnimalTarget(A){const r=Math.random;if(r()<.35){const x=A.x+(r()-.5
   let x,z,k=0;do{const a=r()*6.283,d=A.kind==='rabbit'?8+r()*30:15+r()*45;x=Math.cos(a)*d;z=Math.sin(a)*d+(A.kind==='deer'?-5:5);k++}while((Math.abs(z-zs(x))<4||dTrail(x,z)<2)&&k<8);return[x,z,'graze']}
 function updAnimals(dt){const px=player.x,pz=player.z;
   animals.forEach(A=>{const vis=(curSeason===3)===!!A.win;A.g.visible=vis;if(!vis)return;A.t-=dt;const pd=Math.hypot(A.x-px,A.z-pz),fr=A.dl?5:A.kind==='wolf'?7:3.2;
-    if(pd<fr&&!A.flee){A.flee=1;const ax=(A.x-px)/(pd||1),az=(A.z-pz)/(pd||1);A.tx=A.x+ax*14;A.tz=A.z+az*14;A.st='walk';A.next='idle'}
+    if(pd<fr&&!A.flee&&!A.come){A.flee=1;const ax=(A.x-px)/(pd||1),az=(A.z-pz)/(pd||1);A.tx=A.x+ax*14;A.tz=A.z+az*14;A.st='walk';A.next='idle'}
     const dx=A.tx-A.x,dz=A.tz-A.z,dd=Math.hypot(dx,dz);let moving=false;
     if(A.st==='walk'){if(dd<.3){A.st=A.next||'idle';A.t=A.st==='idle'?2+Math.random()*3:5+Math.random()*8;A.flee=0}else{const sp=(A.flee?(A.dl?5:A.kind==='wolf'?5.5:4.5):A.sp)*dt;A.x+=dx/dd*Math.min(dd,sp);A.z+=dz/dd*Math.min(dd,sp);moving=true;
       const ty=Math.atan2(dx,dz);let d=ty-A.g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));A.g.rotation.y+=d*Math.min(1,dt*6)}}
@@ -795,6 +850,7 @@ function updAnimals(dt){const px=player.x,pz=player.z;
     if(A.st==='drink'&&A.t>0){const wx=A.x,wz=zs(A.x);const ty=Math.atan2(wx-A.x,wz-A.z);let d=ty-A.g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));A.g.rotation.y+=d*Math.min(1,dt*3)}
     A.ph+=dt*(moving?(A.flee?14:8):0);A.moving=moving;const head=A.st==='graze'||A.st==='drink'?(A.dl?1:.5):0;A.hg.rotation.x+=(head-A.hg.rotation.x)*Math.min(1,dt*3);if(A.dl&&head)A.hg.position.y+=((1.15)-A.hg.position.y)*Math.min(1,dt*3);else if(A.dl)A.hg.position.y+=(1.72-A.hg.position.y)*Math.min(1,dt*3);
     A.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(A.ph+(i%2?Math.PI:0)+(i>1?Math.PI/2:0))*.5:0);
+    if(A.come&&A.st==='idle'){A.t=5;const ty=Math.atan2(px-A.x,pz-A.z);let d=ty-A.g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));A.g.rotation.y+=d*Math.min(1,dt*2)}
     A.g.position.set(A.x,GH(A.x,A.z)+(A.kind==='rabbit'&&moving?Math.abs(Math.sin(A.ph))*.25:0),A.z)});
   const showB=day>.15&&env.rain<.5;birds.forEach((B,i)=>{B.g.visible=showB;if(!showB)return;B.t-=dt;
     if(B.st==='ground'){B.hop-=dt;if(B.hop<0){B.hop=.4+Math.random()*1.2;if(Math.random()<.5){B.x+=(Math.random()-.5)*.5;B.z+=(Math.random()-.5)*.5;B.g.rotation.y=Math.random()*6.283}}
@@ -937,18 +993,18 @@ function releaseJar(){if(!S.jar)return;const jp=jarPos();let n=S.jar;for(const f
 function toggleHang(){if(!S.jarHung&&!S.jar){toast('먼저 반딧불이를 잡아 유리병에 담아 주세요');return}S.jarHung=!S.jarHung;jarChanged();toast(S.jarHung?'반딧불이 유리병을 텐트 램프 자리에 걸었어요':'유리병을 다시 손에 들었어요. 길을 밝혀 줘요')}
 function setPose(po){player.pose=po;if(!(fly&&fly.on))player.lift=0;if(player.sit)player.sit.children[0].visible=true;player.stand.visible=po==='walk'||po==='lie';player.sit.visible=po==='sit';player.stand.rotation.x=po==='lie'?-Math.PI/2:0;player.stand.position.set(0,po==='lie'?.2:0,po==='lie'?-.9:0)}
 function buildFamily(){while(fam.children.length)fam.remove(fam.children[0]);const npc=sharedCamp?[]:S.people.filter(p=>p.id!==S.me),n=npc.length;buildPlayer();
-  npc.forEach((p,i)=>{const a=n===1?-Math.PI/2:-Math.PI*.95+Math.PI*1.4*i/Math.max(1,n-1)*(n>4?1.2:1);const r=3.2,g=person(coatOf(p));g.position.set(Math.cos(a)*r,0,Math.sin(a)*r);g.lookAt(0,0,0);g.traverse(o=>o.userData.ref=p);fam.add(g)});
+  npc.forEach((p,i)=>{const a=n===1?-Math.PI/2:-Math.PI*.95+Math.PI*1.4*i/Math.max(1,n-1)*(n>4?1.2:1);const r=3.2,g=person(coatOf(p));g.position.set(Math.cos(a)*r,0,Math.sin(a)*r);g.lookAt(0,0,0);g.traverse(o=>o.userData.ref=p);g.userData.nm=p.name;fam.add(g)});
   const pa=[-.15,Math.PI+.15,.45,Math.PI-.45,.8,Math.PI-.8,1.1,Math.PI-1.1];
   (worldO?worldO.pets:S.pets).forEach((p,i)=>{const a=pa[i%8],r=2.6+Math.floor(i/8)*.8,g=pet(p);g.position.set(Math.cos(a)*r,0,Math.sin(a)*r);g.lookAt(0,0,0);g.traverse(o=>o.userData.ref=p);
     if(p.mode==='follow'){g.position.set(player.x-1-i*.6,0,player.z+1.2)}g.userData.pet={p,i,home:g.position.clone(),hry:g.rotation.y,tx:g.position.x,tz:g.position.z,wait:0,hop:0};fam.add(g)})}
 buildFamily();
 
 /* ---------- 시간·계절·날씨 ---------- */
-const SEASONS=['봄','여름','가을','겨울'],WX={clear:'맑음',cloudy:'구름 많음',rain:'비',snow:'눈'};
+const SEASONS=['봄','여름','가을','겨울'],WX={clear:'맑음',cloudy:'구름 많음',rain:'비',snow:'눈',monsoon:'장마',storm:'태풍'};
 const seasonOf=m=>m>=3&&m<=5?0:m<=8&&m>=6?1:m>=9&&m<=11?2:3;
 function autoWx(d,s){const doy=Math.floor((d-new Date(d.getFullYear(),0,0))/864e5),x=Math.abs(Math.sin(doy*12.9898+d.getFullYear()*78.233)*43758.5453)%1;
-  if(s===3)return'snow';const p=[[.22,.3,0],[.33,.27,0],[.14,.3,0],[0,.3,.3]][s];if(x<p[0])return'rain';if(x<p[0]+p[2])return'snow';if(x<p[0]+p[1]+p[2])return'cloudy';return'clear'}
-let curSeason=-1,env={cloud:.1,rain:0,snow:0},wind=.4,night=0,day=1;
+  if(s===3)return'snow';if(s===1){const mo=d.getMonth()+1;if((mo===7||(mo===6&&d.getDate()>20))&&x<.55)return'monsoon';if(mo===8&&x<.08)return'storm'}const p=[[.22,.3,0],[.33,.27,0],[.14,.3,0],[0,.3,.3]][s];if(x<p[0])return'rain';if(x<p[0]+p[2])return'snow';if(x<p[0]+p[1]+p[2])return'cloudy';return'clear'}
+let flash=0,curSeason=-1,env={cloud:.1,rain:0,snow:0,storm:0},wind=.4,night=0,day=1;
 let envO=null,hostName='',hostSeen=0;const EV=()=>envO||{t:S.time,s:S.season,w:S.wx,g:S.glowPrev?1:0};
 function clock(){const d=new Date(),live=d.getHours()+d.getMinutes()/60,E=EV();const hour=E.t==='live'?live:{morning:7,noon:13,dusk:18.4,night:22.5}[E.t];
   const season=E.s==='live'?seasonOf(d.getMonth()+1):+E.s;const wx=E.w==='auto'?autoWx(d,season):E.w;return{d,hour,season,wx}}
@@ -956,12 +1012,13 @@ function paintGround(s){const a=s===3?Math.max(0,Math.min(1,S.snowAcc||0)):0;pai
   const gcol=s===3?C('#a3ab90').lerp(C('#eaf2f4'),a):C(['#a4d873','#78c45c','#d2b860'][s]);grassU.uCol.value.copy(gcol);
   const base=s===3?C('#8f9c7e').lerp(C('#eef3f6'),a):C(['#80bd5c','#5fab4a','#b09f4e'][s]),bank=s===3?C('#8a8476').lerp(C('#d5dde0'),a):C('#8a8476'),dirt=s===3?C('#7a6a52').lerp(C('#dfe5e8'),a):C('#7a6a52');
   for(let i=0;i<tp.count;i++){const x=tp.getX(i),z=tp.getZ(i),dd=Math.abs(z-zs(x)),rr=Math.hypot(x,z);const c=base.clone().multiplyScalar(.85+.3*Math.sin(x*.21+z*.17)*Math.sin(z*.13));
-    c.lerp(bank,1-sst(2.5,5.5,dd));c.lerp(dirt,1-sst(1.5,4.2,rr));tcol.set([c.r,c.g,c.b],i*3)}tg.attributes.color.needsUpdate=true}
+    c.lerp(bank,1-sst(2.5,5.5,dd));c.lerp(dirt,1-sst(1.5,4.2,rr));tcol.set([c.r,c.g,c.b],i*3)}tg.attributes.color.needsUpdate=true;
+  if(s===3&&typeof pines!=='undefined'){pines.forEach((t,i)=>{iConeA.setColorAt(i,C('#6f8f80').lerp(C('#eef3f5'),a*.8).offsetHSL(0,0,(t.r-.5)*.06));iConeB.setColorAt(i,C('#86a596').lerp(C('#f6f9fa'),a*.85).offsetHSL(0,0,(t.r-.5)*.06))});iConeA.instanceColor.needsUpdate=iConeB.instanceColor.needsUpdate=true}}
 let paintedAcc=-1;
 function applySeason(s){curSeason=s;const r=rng(51);
   paintGround(s);
   const pc=s===3?['#6f8f80','#86a596']:['#355f3c','#41704a'];pines.forEach((t,i)=>{iConeA.setColorAt(i,C(pc[0]).offsetHSL(0,0,(t.r-.5)*.08));iConeB.setColorAt(i,C(pc[1]).offsetHSL(0,0,(t.r-.5)*.08))});
-  const crowns=[['#f3c6d4','#f8dbe4','#9ccc6c','#b5d880'],['#4f9a48','#5fa852','#448c40','#6aaf55'],['#d9823e','#c4553a','#e3b34a','#b8732f','#9a8a3a'],['#ffffff']][s];const o=new THREE.Object3D();
+  const crowns=[['#f3c6d4','#f8dbe4','#9ccc6c','#b5d880'],['#4f9a48','#5fa852','#448c40','#6aaf55'],['#d9823e','#c4553a','#e3b34a','#d9412b','#f2cf3a','#f0a030','#a8432e','#e8c23a','#b8732f','#8fa33a'],['#ffffff']][s];const o=new THREE.Object3D();
   leafs.forEach((t,i)=>{iCrown.setColorAt(i,C(s===3?(t.r<.4?'#2f5c3e':'#eef4fb'):s===0?(t.r<.5?(t.r<.25?'#ffc4d6':'#ffd6e2'):t.r<.75?'#fff4f2':'#bfe38e'):crowns[Math.floor(t.r*crowns.length)]));o.position.set(t.x,t.y-.1,t.z);o.rotation.y=t.ry;o.scale.set(t.s,s===3?t.s*(t.r<.4?.85:.7):t.s,t.s);o.updateMatrix();iCrown.setMatrixAt(i,o.matrix)});
   [iConeA,iConeB,iCrown].forEach(m=>{m.instanceColor.needsUpdate=true});iCrown.instanceMatrix.needsUpdate=true;
   grass.count=Math.min(s===3?1500:NG,QG[S.q]);const fc=[['#f7a8c4','#ffe36e','#ffffff','#c9a8f0'],['#ffffff','#ffe36e','#8fb6ff'],['#e8e2f8','#c9a8f0'],['#ffffff']][s];
@@ -974,7 +1031,7 @@ function updateEnv(dt,ck){
   const m=ck.d.getMonth(),doy=m*30.4+ck.d.getDate(),dayLen=12+2.4*Math.cos((doy-172)/365*Math.PI*2),sr=12.4-dayLen/2,p=(ck.hour-sr)/dayLen;
   const el=Math.sin(Math.PI*p)*(.62+.35*Math.cos((doy-172)/365*Math.PI*2));sunDir.set(Math.cos(Math.PI*Math.min(1.3,Math.max(-.3,p))),el,-.55).normalize();
   day=sst(-.08,.22,sunDir.y);const tw=Math.max(0,1-Math.abs(sunDir.y-.02)/.2);night=1-sst(-.2,.02,sunDir.y);
-  const tgt={clear:[.12,0,0],cloudy:[.78,0,0],rain:[.96,1,0],snow:[.85,0,1]}[ck.wx];const k=Math.min(1,dt*.6);env.cloud=lerp(env.cloud,tgt[0],k);env.rain=lerp(env.rain,tgt[1],k);env.snow=lerp(env.snow,tgt[2],k);
+  const tgt={clear:[.12,0,0,0],cloudy:[.78,0,0,0],rain:[.96,1,0,0],monsoon:[1,1,0,.35],storm:[1,1,0,1],snow:[.85,0,1,0]}[ck.wx]||[.12,0,0,0];const k=Math.min(1,dt*.6);env.cloud=lerp(env.cloud,tgt[0],k);env.rain=lerp(env.rain,tgt[1],k);env.snow=lerp(env.snow,tgt[2],k);env.storm=lerp(env.storm||0,tgt[3],k);
   const cl=env.cloud;tmpA.copy(SKY.nT).lerp(SKY.dT,day).lerp(SKY.uT,tw*.6);tmpB.copy(SKY.nH).lerp(SKY.dH,day).lerp(SKY.uH,tw*.75);
   const gray=SKY.gN.clone().lerp(SKY.gD,day);tmpA.lerp(gray,cl*.75);tmpB.lerp(gray,cl*.7);if(ck.season===3)tmpB.lerp(C('#dfe6ee'),.15*day);
   skyU.uTop.value.copy(tmpA);skyU.uHor.value.copy(tmpB);skyU.uSunDir.value.copy(sunDir);skyU.uSun.value=(1-cl*.85)*sst(-.1,.05,sunDir.y);skyU.uCloud.value=cl;skyU.uWind.value=wind;skyU.uCL.value.copy(gray).lerp(C('#ffffff'),day*(1-cl*.5)).lerp(C('#f4a27c'),tw*.55);skyU.uSunCol.value.set(tw>.3?'#ffb070':'#fff0c8');
@@ -987,8 +1044,8 @@ function updateEnv(dt,ck){
   const lc=.25+.8*day*(1-.3*cl);grassU.uLC.value.set(lc*(tmpB.r*.3+.7),lc*(tmpB.g*.3+.7),lc*(tmpB.b*.3+.7));
   waterU.uSky.value.copy(tmpB);waterU.uTop.value.copy(tmpA);if(day>.05){waterU.uGl.value.copy(sunDir);waterU.uGlC.value.copy(skyU.uSunCol.value);waterU.uGlA.value=skyU.uSun.value}else{waterU.uGl.value.copy(mdir);waterU.uGlC.value.set('#dfe6ff');waterU.uGlA.value=moon.material.opacity*.6}waterU.uL.value=.25+.75*day;waterU.uRain.value=env.rain;
   clouds.forEach(c=>{c.position.x+=dt*c.userData.v*(1+wind*2);if(c.position.x>260)c.position.x=-260;c.material.opacity=.12+cl*.8;c.material.color.copy(gray).lerp(C('#ffffff'),day*(1-cl*.4)).lerp(C('#f2a37a'),tw*.4)});
-  const base={clear:.35,cloudy:.5,rain:.75,snow:.55}[ck.wx]+(ck.season===3?.12:0);wind=base*(.55+.55*(.5+.5*Math.sin(T*.21)*Math.sin(T*.57+1)));grassU.uWind.value=wind;
-  bulbs.forEach(b=>b.material.color.set(night>.3?'#ffd08a':'#9a8a70'));[campObj.tent,campObj.glamp,campObj.van].forEach(o=>{if(o)o.userData.light.intensity=o.visible?.12+.3*night:0});if(vanWin)vanWin.color.set(night>.3?'#ffc779':'#2a3440');lantern.intensity=night*1.1;
+  const base=({clear:.35,cloudy:.5,rain:.75,monsoon:.85,storm:1.7,snow:.55}[ck.wx]||.4)+(ck.season===3?.12:0);wind=base*(.55+.55*(.5+.5*Math.sin(T*.21)*Math.sin(T*.57+1)));grassU.uWind.value=wind;
+  flash=Math.max(0,flash-dt*3);hemi.intensity=.8+flash*2.2;bulbs.forEach(b=>b.material.color.set(night>.3?'#ffd08a':'#9a8a70'));[campObj.tent,campObj.glamp,campObj.van].forEach(o=>{if(o)o.userData.light.intensity=o.visible?.12+.3*night:0});if(vanWin)vanWin.color.set(night>.3?'#ffc779':'#2a3440');lantern.intensity=night*1.1;
 }
 
 /* ---------- 실제 별자리 (전주 기준 위치·현재 시각으로 계산) ---------- */
@@ -1221,9 +1278,9 @@ function clearTgt(){tgt=null;mark.visible=false}
 function goTo(x,z,o={}){const r=Math.hypot(x,z);if(r>95){x*=95/r;z*=95/r}tgt={x,z,t:0,...o};mark.position.set(x,WH(x,z)+.06,z);mark.visible=!o.act;if(player.pose!=='walk'){setPose('walk');if(viewMode==='stars'||viewMode==='stream')setView('third',1)}}
 function arrive(a){curAct=a;doAct()}
 function animWalk(sp=0){const g=player.stand;if(!g||player.pose!=='walk')return;const a=Math.sin(player.walk)*Math.min(.7,sp*.14);g.userData.legs.forEach((l,i)=>l.rotation.x=i?a:-a);g.userData.arms.forEach((l,i)=>l.rotation.x=i?-a*.8:a*.8)}
-const ACTS={fairy:'요정과 이야기',fire:'모닥불 쬐기',blanket:'담요에 눕기',stream:'물가에 앉기',tentin:'텐트 안으로 들어가기',tent:{tent:'침낭에 눕기',glamp:'이불에 눕기',hammock:'해먹에 눕기',van:'침대에 눕기'},driver:'운전석에 앉기',vancargo:'짐칸 열기',stand:'일어나기'};let curAct=null;
+const ACTS={fairy:'요정과 이야기',fire:'모닥불 쬐기',blanket:'담요에 눕기',stream:'물가에 앉기',tentin:'텐트 안으로 들어가기',tent:{tent:'침낭에 눕기',glamp:'이불에 눕기',hammock:'해먹에 눕기',van:'침대에 눕기'},treelie:'소원나무 아래 눕기',driver:'운전석에 앉기',vancargo:'짐칸 열기',stand:'일어나기'};let curAct=null;
 function nearAct(){if(player.pose!=='walk')return'stand';const p={x:player.x,z:player.z},d=(x,z)=>Math.hypot(p.x-x,p.z-z);{const P=PROPS().find(P=>(P.k==='chair'||P.k==='mat')&&d(P.x,P.z)<1.5);if(P)return'prop:'+P.id}
-  if(d(FAIRY.x,FAIRY.z)<5.5)return'fairy';if(d(0,0)<3.6)return'fire';if(d(blanket.position.x,blanket.position.z)<2.4)return'blanket';{const m=roomAt();if(m&&m.P)return'ptent:'+m.P.id;if(m&&m.van){const[lu,lv]=vL(m,p.x,p.z);if(lu>1.5)return'driver';if(lu<-1.5)return'tent';if(lu<-.2&&lv>.2)return'vancargo';return null}}if(tentOn()){if(inTent())return'tent';if(d(TCX+TDX*(TRAD+.6),TCZ+TDZ*(TRAD+.6))<2.6)return'tentin'}else if(S.camp==='van'){const q=vWp(vanRoom(),.5,1.35+1);if(d(q[0],q[1])<2.4)return'tentin'}else if(d(campPos.x,campPos.z)<4.2)return'tent';if(Math.abs(p.z-zs(p.x))<6.5)return'stream';return null}
+  if(d(FAIRY.x,FAIRY.z)<5.5)return'fairy';if(d(PK.x,PK.z)<7.5)return'treelie';if(d(0,0)<3.6)return'fire';if(d(blanket.position.x,blanket.position.z)<2.4)return'blanket';{const m=roomAt();if(m&&m.P)return'ptent:'+m.P.id;if(m&&m.van){const[lu,lv]=vL(m,p.x,p.z);if(lu>1.5)return'driver';if(lu<-1.5)return'tent';if(lu<-.2&&lv>.2)return'vancargo';return null}}if(tentOn()){if(inTent())return'tent';if(d(TCX+TDX*(TRAD+.6),TCZ+TDZ*(TRAD+.6))<2.6)return'tentin'}else if(S.camp==='van'){const q=vWp(vanRoom(),.5,1.35+1);if(d(q[0],q[1])<2.4)return'tentin'}else if(d(campPos.x,campPos.z)<4.2)return'tent';if(Math.abs(p.z-zs(p.x))<6.5)return'stream';return null}
 function doAct(){const a=curAct;if(!a)return;clearTgt();
   if(a.startsWith('prop:')){const P=PROPS().find(q=>'prop:'+q.id===a);if(!P)return;player.x=P.x;player.z=P.z;player.ry=P.ry;if(P.k==='chair'){setPose('sit');player.sit.children[0].visible=false;player.lift=.02;toast('캠핑 의자에 앉았어요. 바람 소리가 좋아요')}else{setPose('lie');player.ry=P.ry+Math.PI/2;toast('돗자리에 누웠어요');}return}
   if(a==='stand'){setPose('walk');if(viewMode==='stars'||viewMode==='stream')setView('third',1);return}
@@ -1237,8 +1294,9 @@ function doAct(){const a=curAct;if(!a)return;clearTgt();
   if(a==='tent'&&S.camp==='van'&&roomAt()){const m=vanRoom(),q=vWp(m,-2.4,.6);player.x=q[0];player.z=q[1];player.ry=Math.atan2(m.vx,m.vz);setPose('lie');player.lift=.72;toast('캠핑카 침대에 누웠어요. 곰인형이 옆에 있어요',3000);return}
   if(a==='driver'){const m=vanRoom(),q=vWp(m,2.05,-.55);player.x=q[0];player.z=q[1];player.ry=Math.atan2(m.ux,m.uz);setPose('sit');player.sit.children[0].visible=false;player.lift=.2;drvPrev=viewMode==='first'?'first':'third';setView('first',1);look.yaw=Math.PI-player.ry;look.pitch=-.08;drvOn=true;driverMenu();return}
   if(a==='vancargo'){cargoMenu();return}
+  if(a==='treelie'){lieHere();return}
   if(a==='tent'&&tentOn()){const px=-TDZ,pz=TDX,side=((player.x-TCX)*px+(player.z-TCZ)*pz)>=0?1:-1;player.x=TCX+px*.75*side+TDX*.25;player.z=TCZ+pz*.75*side+TDZ*.25;player.ry=Math.atan2(TDX,TDZ);setPose('lie');player.lift=.3;toast('침낭 속에 쏙 들어가 누웠어요. 텐트 천장이 포근해요',3000);return}
-  if(a==='tent'){if(S.camp==='hammock'){const H=campObj.hammock;H.updateMatrixWorld(true);const c=H.localToWorld(new THREE.Vector3(0,0,0)),ax=H.localToWorld(new THREE.Vector3(1,0,0)).sub(c).normalize();player.ry=Math.atan2(ax.x,ax.z);player.x=c.x+ax.x*.8;player.z=c.z+ax.z*.8;setPose('lie');player.lift=Math.max(.3,c.y+1.02-GH(player.x,player.z)-.2);hamLie=true;toast('해먹에 폭 안겨 누웠어요. 바람에 살랑살랑 흔들려요',3000);return}else setPose('sit');
+  if(a==='tent'){if(S.camp==='hammock'){const H=campObj.hammock;H.updateMatrixWorld(true);const c=H.localToWorld(new THREE.Vector3(0,0,0)),ax=H.localToWorld(new THREE.Vector3(1,0,0)).sub(c).normalize();player.ry=Math.atan2(ax.x,ax.z);player.x=c.x+ax.x*1.62;player.z=c.z+ax.z*1.62;setPose('lie');player.lift=Math.max(.3,c.y+1.02-GH(player.x,player.z)-.2);player.g.position.set(player.x,WH(player.x,player.z)+player.lift,player.z);player.g.rotation.y=player.ry;player.g.updateMatrixWorld(true);{const bb=new THREE.Box3().setFromObject(player.stand),bc=bb.getCenter(new THREE.Vector3());player.x+=c.x-bc.x;player.z+=c.z-bc.z;player.lift+=c.y+1.0-bb.min.y-.05}hamLie=true;toast('해먹에 폭 안겨 누웠어요. 바람에 살랑살랑 흔들려요',3000);return}else setPose('sit');
     toast({tent:'텐트 앞에 앉아 쉬어요. 침낭이 포근해 보여요',glamp:'벨텐트 앞에서 쉬어요. 전구 불빛이 은은해요',hammock:'해먹에 누웠어요. 바람에 살랑살랑 흔들려요',van:'캠핑카 문 앞에 앉아 따뜻한 차를 마셔요'}[S.camp])}}
 $('act').onclick=doAct;
 const FAIRY_HI=['어서 와요, 저는 소원이예요. 요정 친구 아홉 명과 소원나무를 지키고 있어요','어서 와요, 먼 길 오느라 고생했어요','오늘 하루도 정말 애썼어요','소원나무가 당신을 기다리고 있었어요','소원을 띄우면 나무에 작은 빛이 하나 생겨요','천천히 쉬어 가도 괜찮아요'];
@@ -1257,7 +1315,7 @@ $('wishGo').onclick=()=>{const tx=$('wishTx').value.trim().slice(0,60);if(!tx){$
   if(wishType==='lantern'){const fx2=player.x+Math.sin(player.ry)*1.2,fz2=player.z+Math.cos(player.ry)*1.2;{if(player.pose!=='walk')setPose('walk');clearTgt();const L=spawnLantern(fx2,fz2,0,glowDay(ck0||clock()));L.hold=true;wishHold={L,t:0}}toast('두 손으로 소원등을 들고 불을 붙였어요. 따뜻해지면 하늘로 보내요',3200);}
   else{startBoatRitual(tx,glowDay(ck0||clock()));toast('한 손엔 소원배, 한 손엔 매직! 배에 소원을 적어요',3000)}
 };
-let a2k='';$('act2').onclick=()=>{if(a2k==='bungeo'){startBung();return}if(a2k==='duck'){makeDuck();return}if(a2k==='netout'){netToggle(true);toast('주머니에서 잠자리채를 꺼냈어요',1500);a2k='x';return}if(a2k==='catch'){catchNear();return}if(a2k==='hang'){toggleHang();a2k='x';return}openWish(a2k==='boat'?'boat':'lantern')};
+let a2k='';$('act2').onclick=()=>{if(a2k==='snowball'){myThrow();return}if(a2k==='bungeo'){startBung();return}if(a2k==='duck'){makeDuck();return}if(a2k==='netout'){netToggle(true);toast('주머니에서 잠자리채를 꺼냈어요',1500);a2k='x';return}if(a2k==='catch'){catchNear();return}if(a2k==='hang'){toggleHang();a2k='x';return}openWish(a2k==='boat'?'boat':'lantern')};
 $('vTree').onclick=()=>{$('wish').hidden=true;player.x=TR[TR.length-16].x;player.z=TR[TR.length-16].z;player.ry=Math.atan2(PK.x-player.x,PK.z-player.z);setPose('walk');if(viewMode!=='first')setView('third',1);camO.yaw=player.ry+Math.PI;camO.pitch=.18;camO.dist=9;toast('산꼭대기 소원나무 앞에 도착했어요. 요정에게 가까이 가 보세요',4000)};
 const ray=new THREE.Raycaster();let lastTap={t:0,x:0,y:0};const LINES={person:['불이 따뜻하다','바람 소리 좋다','별 보러 갈까?','시냇물 소리가 잔잔해','오늘 공기가 참 좋아','조금만 더 있다 자자'],dog:['멍!','(꼬리 살랑살랑)','킁킁'],cat:['냐옹','(골골골)','(꾹꾹이)'],rabbit:['(코 씰룩씰룩)','(깡총)']};
 function tap(e){const r=cv.getBoundingClientRect();{let best=null,bd=36;const pv=new THREE.Vector3();for(const f of ff){if(f.c>=0||f.vis<.08)continue;if(Math.hypot(f.cx-player.x,f.cz-player.z)>10)continue;pv.set(f.cx,f.cy,f.cz).project(cam);if(pv.z>1)continue;const d=Math.hypot((pv.x+1)/2*r.width-(e.clientX-r.left),(1-pv.y)/2*r.height-(e.clientY-r.top));if(d<bd){bd=d;best=f}}if(best){catchFF(best);return}}ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},cam);
@@ -1274,6 +1332,7 @@ function tap(e){const r=cv.getBoundingClientRect();{let best=null,bd=36;const pv
   if(u.tap==='blanket'){if(pd(blanket.position.x,blanket.position.z)<3)setView('stars');else goTo(blanket.position.x,blanket.position.z+1.4,{act:'blanket',near:1.2});return}
   if(u.tap==='campsign'){toast(`여기는 '${S.campName}'이에요`);return}if(u.tap==='sign'){toast('↑ 소원나무 등산로 · 다리를 건너 산꼭대기까지 걸어가요. 길을 누르면 걸어가요',4000);return}
   if(u.tap==='fairy'){if(pd(FAIRY.x,FAIRY.z)<6)openWish('lantern');else goTo(FAIRY.x,FAIRY.z+2.5,{act:'fairy',near:1});return}
+  if(u.tap==='warn'){toast(flood>.45?'⚠ 경고등이 깜빡여요. 시냇물이 불어나고 있어요':'홍수 경고등이에요. 비가 많이 오면 빨간불이 켜져요',2600);return}
   if(u.tap==='duck'){toast(pick(['꽥! 동글동글 눈오리예요','눈오리가 줄지어 앉아 있어요','차가운 눈오리, 귀여워요']),1600);return}
   if(u.tap==='cargo'){if(roomAt())cargoMenu();else{const q=vWp(vanRoom(),.5,0);goTo(q[0],q[1])}return}
   if(u.tap==='camp'&&S.camp==='van'){if(roomAt())toast('캠핑카 안이에요. 운전석, 부엌, 침대, 짐칸을 둘러보세요',2600);else{const q=vWp(vanRoom(),.5,0);goTo(q[0],q[1])}return}
@@ -1322,6 +1381,7 @@ function burst(dest,at,freq,q,v,rate=1,pan=0,dur){const s=ac.createBufferSource(
   let n=s.connect(bp).connect(g);if(ac.createStereoPanner){const p=ac.createStereoPanner();p.pan.value=pan;n=n.connect(p)}n.connect(dest);s.start(at,Math.random()*3.5,.15)}
 function tone(dest,at,f0,f1,dur,v,pan=0){const o=ac.createOscillator(),g=ac.createGain();o.frequency.setValueAtTime(f0,at);o.frequency.exponentialRampToValueAtTime(f1,at+dur);env1(at,dur,v,g);
   if(ac.createStereoPanner){const p=ac.createStereoPanner();p.pan.value=pan;o.connect(g).connect(p).connect(dest)}else o.connect(g).connect(dest);o.start(at);o.stop(at+dur+.05)}
+function thunder(n){flash=1;const d=.3+Math.random()*1.2,src=ac.createBufferSource(),lp=ac.createBiquadFilter(),g=ac.createGain();src.buffer=noise;src.loop=true;lp.type='lowpass';lp.frequency.value=180;g.gain.setValueAtTime(0,n+d);g.gain.linearRampToValueAtTime(1.6*vol('rain'),n+d+.15);g.gain.exponentialRampToValueAtTime(.001,n+d+3);src.connect(lp);lp.connect(g);g.connect(master);src.start(n+d);src.stop(n+d+3.1)}
 function howl(n,pan){const o=ac.createOscillator(),lfo=ac.createOscillator(),lg=ac.createGain(),g=ac.createGain(),lp=ac.createBiquadFilter(),pn=ac.createStereoPanner?ac.createStereoPanner():null;o.type='sawtooth';lp.type='lowpass';lp.frequency.value=900;o.frequency.setValueAtTime(330,n);o.frequency.linearRampToValueAtTime(560,n+.8);o.frequency.linearRampToValueAtTime(600,n+2);o.frequency.linearRampToValueAtTime(420,n+3);lfo.frequency.value=5;lg.gain.value=8;lfo.connect(lg);lg.connect(o.frequency);g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(.025*vol('bugs'),n+.6);g.gain.setValueAtTime(.025*vol('bugs'),n+2.4);g.gain.linearRampToValueAtTime(0,n+3.1);o.connect(lp);lp.connect(g);if(pn){pn.pan.value=pan;g.connect(pn);pn.connect(master)}else g.connect(master);o.start(n);lfo.start(n);o.stop(n+3.2);lfo.stop(n+3.2)}
 let musG=null,musT=0,musS=0;const CHO=[[261.6,329.6,392,493.9],[220,261.6,329.6,392],[174.6,220,261.6,329.6],[196,246.9,293.7,392]];
 function music(now,on){if(!musG){musG=ac.createGain();musG.gain.value=0;const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2600;musG.connect(lp);lp.connect(master);musG.lp=lp}
@@ -1341,7 +1401,7 @@ function tick(){if(!soundOn||!ck0)return;const now=ac.currentTime,ts=.2,R_=Math.
   const lw=vol('wind')*(ck0.season===3?.7:1);Lg.wind.gain.setTargetAtTime(lw*wind*1.1,now,ts);windCh.forEach(g=>g.gain.setTargetAtTime(.25+R_()*.9,now,.03));
   Lg.windLow.gain.setTargetAtTime(lw*Math.max(0,wind-.25)*3,now,.4);
   const underT=PROPS().some(P=>{if(P.k!=='tarp')return false;const c=Math.cos(-P.ry),sn=Math.sin(-P.ry),dx=player.x-P.x,dz=player.z-P.z;return Math.abs(dx*c+dz*sn)<1.4&&Math.abs(-dx*sn+dz*c)<1.4});
-  Lg.rain.gain.setTargetAtTime(vol('rain')*env.rain*(underT?.7:1.1),now,.5);if(underT&&env.rain>.1)for(let i=0;i<5;i++)if(R_()<env.rain)burst(Lg.rain,now+R_()*.08,700+R_()*900,2.2,2.6*vol('rain'),.6+R_()*.3,R_()*1.2-.6,.05);if(env.rain>.1){for(let i=0;i<6;i++)if(R_()<env.rain)burst(Lg.rain,now+R_()*.08,2200+R_()*5000,2.5,2.2,.7+R_(),R_()*2-1);
+  Lg.rain.gain.setTargetAtTime(vol('rain')*env.rain*(underT?.7:1.1)*(.55+.45*(S.rainAmt??1))*(1+env.storm*.6),now,.5);if(env.storm>.5&&R_()<.01)thunder(now);if(underT&&env.rain>.1)for(let i=0;i<5;i++)if(R_()<env.rain)burst(Lg.rain,now+R_()*.08,700+R_()*900,2.2,2.6*vol('rain'),.6+R_()*.3,R_()*1.2-.6,.05);if(env.rain>.1){for(let i=0;i<6;i++)if(R_()<env.rain)burst(Lg.rain,now+R_()*.08,2200+R_()*5000,2.5,2.2,.7+R_(),R_()*2-1);
     if(R_()<env.rain*.5)burst(Lg.rain,now+R_()*.08,350+R_()*250,3,3,.5,R_()*1.2-.6,.08)}
   Lg.birds.gain.setTargetAtTime(vol('birds'),now,ts);const lieMus=player.pose==='lie'&&(viewMode==='stars'||PROPS().some(P=>P.k==='mat'&&Math.hypot(P.x-player.x,P.z-player.z)<1.6));Lg.bugs.gain.setTargetAtTime(vol('bugs')*(lieMus?2.1:1),now,ts);if(bung&&bung.cooking)for(let i=0;i<3;i++)burst(master,now+R_()*.08,3500+R_()*4000,1.2,.35+R_()*.3,1,0,.04);if(curSeason===3&&night>.5&&R_()<.0025)howl(now,R_()*1.6-.8);music(now,lieMus||(radioOn&&!!(roomAt()||{}).van));const dry=1-env.rain;
   if(ck0.season===1&&day>.5&&dry>.6&&R_()<.012)cicada(now,R_()*1.6-.8);
@@ -1419,7 +1479,7 @@ function syncPeers(peers){const seen=new Set();for(const p0 of peers){if(p0.same
   if(hp){const e=hp.presence.env,one=(v,l,d)=>l.includes(v)?v:d;const nE={t:one(e.t,['live','morning','noon','dusk','night'],'live'),s:one(e.s,['live','0','1','2','3'],'live'),w:one(e.w,['auto','clear','cloudy','rain','snow'],'auto'),g:e.g===1?1:0};
     const ch=JSON.stringify(nE)!==JSON.stringify(envO);envO=nE;const nm=okS(hp.presence.n,12)||'방장';if(!hostName||ch){if(!hostName)toast(`방장 ${nm}님이 정한 캠핑장 분위기를 따라요`,3500)}hostName=nm;if((e.f===1)!==!!S.fire){S.fire=e.f===1;$('bFire').textContent=S.fire?'모닥불 끄기':'모닥불 피우기'}hudT=0}
   if(hp&&hp.presence.world&&typeof hp.presence.world==='object'){const w=hp.presence.world,num=v=>Math.max(-100,Math.min(100,+v||0));
-    const nw={c:['tent','glamp','hammock','van'].includes(w.c)?w.c:'tent',name:okS(w.n,14),props:(Array.isArray(w.p)?w.p:[]).slice(0,30).filter(a=>Array.isArray(a)&&PROPN[a[0]]).map((a,i)=>({k:a[0],x:num(a[1]),z:num(a[2]),ry:+a[3]||0,id:'h'+(parseInt(a[4])||i)})),
+    const nw={s:w.s===1?1:0,c:['tent','glamp','hammock','van'].includes(w.c)?w.c:'tent',name:okS(w.n,14),props:(Array.isArray(w.p)?w.p:[]).slice(0,30).filter(a=>Array.isArray(a)&&PROPN[a[0]]).map((a,i)=>({k:a[0],x:num(a[1]),z:num(a[2]),ry:+a[3]||0,id:'h'+(parseInt(a[4])||i)})),
       pets:(Array.isArray(w.pt)?w.pt:[]).slice(0,8).filter(a=>Array.isArray(a)&&['dog','cat','rabbit'].includes(a[0])).map((a,i)=>({kind:a[0],color:okC(a[1]),name:okS(a[2],8)||'친구',mode:['rest','follow','walk'].includes(a[3])&&a[3]!=='follow'?a[3]:'rest',id:'hp'+i}))};
     if(JSON.stringify(nw)!==JSON.stringify(worldO)){worldO=nw;buildProps();setCamp(nw.c,true);drawCampName();buildFamily()}}
   else if(worldO&&!hp){worldO=null;buildProps();setCamp(S.camp,true);drawCampName();buildFamily()}
@@ -1433,10 +1493,10 @@ function updRemotes(dt){const k=Math.min(1,dt*8);remotes.forEach(r=>{const gp=r.
   if(r.inner.userData.legs){r.ph+=r.walking?dt*8:0;const a=r.walking?Math.sin(r.ph)*.6:0;r.inner.userData.legs.forEach((l,i)=>l.rotation.x=i?a:-a);r.inner.userData.arms.forEach((l,i)=>l.rotation.x=i?-a*.8:a*.8)}})}
 if(!S.did){S.did=Math.random().toString(36).slice(2,10);save()}
 function sendPresence(dt,moving){if(!room)return;presT-=dt;if(presT>0)return;presT=presGap;const m=ME(),r2=v=>Math.round(v*100)/100;
-  const o={id:S.did,n:m.name,c:m.role,sk:m.skin,ha:m.hair,st:m.style,o:m.outfit,cu:{g:m.gender,f:m.face,e:m.eyes,b:m.brow,m:m.mouth,d:m.dress?1:0,bt:m.bottom,sh:m.shoes,h:m.hat,gl:m.glasses,or:m.orn,ac:m.acc},x:r2(player.x),z:r2(player.z),r:r2(player.ry),po:player.pose,l:player.lift,w:moving?1:0};if(isHost())Object.assign(o,{hs:1,env:{t:S.time,s:S.season,w:S.wx,g:S.glowPrev?1:0,f:S.fire?1:0},world:{c:S.camp,n:S.campName||'',p:S.props.slice(-30).map(P=>[P.k,P.x,P.z,P.ry,P.id]),pt:S.pets.slice(0,8).map(q=>[q.kind,q.color,q.name,q.mode||'rest'])}});const s=JSON.stringify(o);if(s!==lastPres){lastPres=s;room.presence(o).catch(()=>{})}}
+  const o={id:S.did,n:m.name,c:m.role,sk:m.skin,ha:m.hair,st:m.style,o:m.outfit,cu:{g:m.gender,f:m.face,e:m.eyes,b:m.brow,m:m.mouth,d:m.dress?1:0,bt:m.bottom,sh:m.shoes,h:m.hat,gl:m.glasses,or:m.orn,ac:m.acc},x:r2(player.x),z:r2(player.z),r:r2(player.ry),po:player.pose,l:player.lift,w:moving?1:0};if(isHost())Object.assign(o,{hs:1,env:{t:S.time,s:S.season,w:S.wx,g:S.glowPrev?1:0,f:S.fire?1:0},world:{s:S.campSite||0,c:S.camp,n:S.campName||'',p:S.props.slice(-30).map(P=>[P.k,P.x,P.z,P.ry,P.id]),pt:S.pets.slice(0,8).map(q=>[q.kind,q.color,q.name,q.mode||'rest'])}});const s=JSON.stringify(o);if(s!==lastPres){lastPres=s;room.presence(o).catch(()=>{})}}
 function wireRoom(room){
   room.onPeers(ch=>syncPeers(ch.peers),()=>{});
-  room.on('wish',m=>{if(m.sameTab)return;const d=m.data||{};if(d.k==='share'){const t=okS(d.t,60),n=okS(d.n,12)||'가족';if(t){logChat(`${n}님의 소원`,t);toast(`${n}님이 소원을 나눠 줬어요`)}return}const x=Math.max(-100,Math.min(100,+d.x||0)),z=Math.max(-100,Math.min(100,+d.z||0));if(d.k==='boat')spawnBoat(x,1);else spawnLantern(x,z,1)},()=>{});
+  room.on('wish',m=>{if(m.sameTab)return;const d=m.data||{};if(d.k==='snow'){const f=v=>Math.max(-100,Math.min(100,+v||0)),g=v=>Math.max(-30,Math.min(30,+v||0));throwBall(new THREE.Vector3(f(d.x),f(d.y),f(d.z)),new THREE.Vector3(g(d.vx),g(d.vy),g(d.vz)),'remote',okS(d.n,12)||'가족');return}if(d.k==='share'){const t=okS(d.t,60),n=okS(d.n,12)||'가족';if(t){logChat(`${n}님의 소원`,t);toast(`${n}님이 소원을 나눠 줬어요`)}return}const x=Math.max(-100,Math.min(100,+d.x||0)),z=Math.max(-100,Math.min(100,+d.z||0));if(d.k==='boat')spawnBoat(x,1);else spawnLantern(x,z,1)},()=>{});
   room.on('typing',m=>{if(m.sameTab)return;const r=remotes.get(m.peer);if(!r)return;typBubble('tp'+m.peer,v=>v.set(r.g.position.x,r.g.position.y+(r.pose==='sit'?1.75:2.05),r.g.position.z),!!(m.data&&m.data.on))},()=>{});
   room.on('chat',m=>{if(m.sameTab)return;typBubble('tp'+m.peer,null,false);const d=m.data||{},t=okS(d.t,80);if(!t)return;const name=okS(d.n,12)||'가족',r=remotes.get(m.peer);if(!r)toast(`${okS(d.n,12)||'가족'}: ${t}`,3500);
     if(r)say({key:'p'+m.peer,pos:v=>v.set(r.g.position.x,r.g.position.y+(r.pose==='sit'?1.75:2.05),r.g.position.z)},name,t);else logChat(name,t)},()=>{})}
@@ -1479,8 +1539,8 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;const 
     updNet(dt,A.rotation.x)}
   {const w=S.coat!==false&&env.rain>.3;if(w!==wearCoat){wearCoat=w;buildFamily();if(w)toast('비가 와요. 모두 노란 우비를 입었어요',3500)}$('vCoat').hidden=env.rain<=.3;$('vCoat').textContent=S.coat!==false?'우비 벗기':'우비 입기'}
   camUpdate(dt);updateEnv(dt,ck);sendPresence(dt,moving);updRemotes(dt);
-  const na=nearAct();if(na!==curAct){curAct=na;$('act').hidden=!na;if(na)$('act').textContent=na.startsWith('prop:')?(PROPS().find(q=>'prop:'+q.id===na)?.k==='chair'?'의자에 앉기':'돗자리에 눕기'):na==='tent'?ACTS.tent[S.camp]:na.startsWith('ptent:')?'작은 텐트에 눕기':na==='tentin'&&S.camp==='van'?'캠핑카에 타기':ACTS[na];}{const nearFF=night>.3&&ff.some(f=>f.c<0&&f.vis>.1&&Math.abs(f.cx-player.x)<3.4&&Math.abs(f.cz-player.z)<3.4);const k2=duckR||bung?'':na==='fire'&&S.fire?'bungeo':S.duckOut&&duckOK()&&!roomAt()&&na!=='fairy'&&na!=='tent'?'duck':na==='fairy'?'wish':(na==='stream'||(na==='stand'&&viewMode==='stream'))?'boat':na==='tent'&&(S.jar||S.jarHung)?'hang':nearFF?(S.netOut?'catch':'netout'):'';
-   if(k2!==a2k){a2k=k2;$('act2').hidden=!k2;$('act2').textContent={wish:'소원 띄우기',boat:'소원배 띄우기',hang:S.jarHung?'유리병 다시 들기':'유리병 걸어두기',catch:'반딧불이 잡기',netout:'잠자리채 꺼내기',bungeo:'붕어빵 굽기',duck:'눈오리 만들기'}[k2]||''}}fireAmt=lerp(fireAmt,S.fire?1:0,Math.min(1,dt*1.2));
+  const na=nearAct();if(na!==curAct){curAct=na;$('act').hidden=!na;if(na)$('act').textContent=na.startsWith('prop:')?(PROPS().find(q=>'prop:'+q.id===na)?.k==='chair'?'의자에 앉기':'돗자리에 눕기'):na==='tent'?ACTS.tent[S.camp]:na.startsWith('ptent:')?'작은 텐트에 눕기':na==='tentin'&&S.camp==='van'?'캠핑카에 타기':ACTS[na];}{const nearFF=night>.3&&ff.some(f=>f.c<0&&f.vis>.1&&Math.abs(f.cx-player.x)<3.4&&Math.abs(f.cz-player.z)<3.4);const k2=duckR||bung?'':na==='fire'&&S.fire?'bungeo':S.duckOut&&duckOK()&&!roomAt()&&na!=='fairy'&&na!=='tent'?'duck':fightOK()&&!roomAt()&&player.pose==='walk'&&na!=='fairy'&&na!=='tent'?'snowball':na==='fairy'?'wish':(na==='stream'||(na==='stand'&&viewMode==='stream'))?'boat':na==='tent'&&(S.jar||S.jarHung)?'hang':nearFF?(S.netOut?'catch':'netout'):'';
+   if(k2!==a2k){a2k=k2;$('act2').hidden=!k2;$('act2').textContent={wish:'소원 띄우기',boat:'소원배 띄우기',hang:S.jarHung?'유리병 다시 들기':'유리병 걸어두기',catch:'반딧불이 잡기',netout:'잠자리채 꺼내기',bungeo:'붕어빵 굽기',duck:'눈오리 만들기',snowball:'눈덩이 던지기'}[k2]||''}}fireAmt=lerp(fireAmt,S.fire?1:0,Math.min(1,dt*1.2));
   grassU.uT.value=waterU.uT.value=starU.uT.value=T;grassU.uFire.value=fireAmt*(.35+.65*night);
   updAnimals(dt);updGlowField(dt,ck);updInsects(dt);updWinter(dt);skyT-=dt;if(skyT<=0){skyT=5;updRealSky()}realG.position.copy(cam.position);cLineMat.opacity=cMode?.5:0;cSel.visible=cMode&&!!cPick;updCLabels();
   propFx.forEach(f=>{if(f.k==='glow')f.gl.material.opacity=.15+.6*night;else{const fl=.85+.15*Math.sin(T*13+f.ph)*Math.sin(T*7+f.ph);f.fl.scale.set(.7*fl,1.1*fl,1);f.fl.material.opacity=.85;f.gl.material.opacity=(.15+.45*night)*fl}});
@@ -1502,13 +1562,13 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;const 
    jarL.position.copy(jp);jarL.intensity=S.jarHung?0:lv;jarGlow.position.copy(jp);jarGlow.material.opacity=S.jar>0?Math.min(.8,.15+S.jar/25)*(.4+.6*night):0;
    heldJar.visible=S.jar>0&&!S.jarHung&&!wishHold&&!boatR&&!S.duckOut&&!bung;hungJar.visible=S.jarHung;hungJar.position.copy(lantern.position).add(new THREE.Vector3(0,-.15,0));
    if(S.jarHung){lantern.color.set('#cdf27a');lantern.intensity=lv*1.2;lanGlow.material.color.set('#d6f27a')}else{lantern.color.set('#ffc070');lanGlow.material.color.set('#ffd08a')}}G.position.needsUpdate=G.aC.needsUpdate=G.aS.needsUpdate=true;
-  const dMode=env.snow>.05?'snow':ck.season===0?'petal':ck.season===2?'leaf':'none',dN=dMode==='snow'?Math.floor(ND*env.snow):dMode==='none'?0:260,D=drift.geometry.attributes,sp2=dMode==='snow'?.55:dMode==='petal'?.5:.9;
-  if(dMode==='snow')for(let i=0;i<dN;i++)D.aC.array[i*4]=D.aC.array[i*4+1]=D.aC.array[i*4+2]=1;
+  const dMode=env.snow>.05?'snow':ck.season===0?'petal':ck.season===2?'leaf':'none',dN=dMode==='snow'?Math.floor(ND*env.snow):dMode==='none'?0:Math.min(ND,Math.floor(260+wind*900)),D=drift.geometry.attributes,sp2=dMode==='snow'?.55:dMode==='petal'?.5:.9;
+  if(dMode!==lastDM){lastDM=dMode;const PC=dMode==='petal'?['#ffc2d4','#ffd6e2','#ffffff','#ff9fbe']:dMode==='leaf'?['#d9412b','#e3b34a','#f0a030','#c4553a','#f2cf3a','#a8432e']:['#ffffff'];for(let i=0;i<ND;i++){const c=C(PC[i%PC.length]);D.aC.array.set([c.r,c.g,c.b],i*4)}}
   for(let i=0;i<ND;i++){const p=dr[i];if(i>=dN){D.aC.array[i*4+3]=0;p.y=-999;continue}
     if(p.y<GH(p.x,p.z)||Math.abs(p.x-cam.position.x)>40||Math.abs(p.z-cam.position.z)>40){p.x=cam.position.x+(Math.random()-.5)*70;p.z=cam.position.z+(Math.random()-.5)*70;p.y=cam.position.y+5+Math.random()*18}
     p.y-=sp2*dt*(.7+.3*Math.sin(p.p));p.x+=(wind*1.6+Math.sin(T*1.3+p.p)*.5)*dt;p.z+=Math.cos(T+p.p)*.3*dt;D.position.array.set([p.x,p.y,p.z],i*3);D.aS.array[i]=dMode==='snow'?.34+.16*Math.sin(p.p*3):.28;if(dMode==='snow')p.x+=Math.sin(T*.8+p.p*2)*.25*dt;D.aC.array[i*4+3]=dMode==='snow'?.9*(.35+.65*day+.2):.9*(.4+.6*day)}
   D.position.needsUpdate=D.aC.needsUpdate=D.aS.needsUpdate=true;
-  const rN=Math.floor(NR*env.rain);rain.geometry.setDrawRange(0,rN*2);rain.material.opacity=.25+.3*day;for(let i=0;i<rN;i++){let o=i*6;if(rainP[o+1]<cam.position.y-12||rainP[o+1]===0||Math.abs(rainP[o]-cam.position.x)>30){rainP[o]=cam.position.x+(Math.random()-.5)*50;rainP[o+2]=cam.position.z+(Math.random()-.5)*50;rainP[o+1]=cam.position.y+5+Math.random()*20}
+  const rN=Math.floor(NR*Math.min(1,env.rain*(.35+.4*(S.rainAmt??1))*(1+env.storm*.9)));rain.geometry.setDrawRange(0,rN*2);rain.material.opacity=.25+.3*day;for(let i=0;i<rN;i++){let o=i*6;if(rainP[o+1]<cam.position.y-12||rainP[o+1]===0||Math.abs(rainP[o]-cam.position.x)>30){rainP[o]=cam.position.x+(Math.random()-.5)*50;rainP[o+2]=cam.position.z+(Math.random()-.5)*50;rainP[o+1]=cam.position.y+5+Math.random()*20}
     rainP[o+1]-=26*dt;rainP[o]+=wind*3*dt;rainP[o+3]=rainP[o]-wind*.15;rainP[o+4]=rainP[o+1]+.7;rainP[o+5]=rainP[o+2]}rain.geometry.attributes.position.needsUpdate=true;
   {const rest=glowDay(ck),glow=rest?.08:.35+.65*night;treeRest+=((rest?1:0)-treeRest)*Math.min(1,dt*.8);const lit=1-treeRest;crownMat.emissiveIntensity=(.45+.45*night)*lit+.04;barkGold.emissiveIntensity=(.25+.45*night)*lit+.03;crownMat.color.setRGB(.97-.2*treeRest,.78-.12*treeRest,.29+.05*treeRest);twinkles.visible=lit>.2;treeSpark.visible=lit>.2;wishTree.userData.rays.material.opacity=lit*(.25+.3*night)*(.85+.15*Math.sin(T*.6));wishTree.userData.rays.material.rotation=T*.02;wishTree.userData.starPts.forEach((p,k)=>p.material.opacity=lit*(.4+.6*Math.max(0,Math.sin(T*(1.3+k*.4)+k*2))));orbCore.material.color.setScalar(1);updTinyF(dt);updBurst(dt);treeGlow.material.opacity=lit*(.3+.45*night)*(.9+.1*Math.sin(T*.8));treeL.intensity=night*1.8*lit;
    twinkleMat.color.setHSL(.13,1,.75+.2*Math.sin(T*2.3));lampHeads.color.set(night>.35?'#ffd59a':'#c9b48e');lampGlows.forEach(g=>g.material.opacity=night*.75);
@@ -1518,7 +1578,7 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;const 
    fairy.userData.wings.forEach(w=>w.rotation.y=w.userData.s*(1.05+Math.sin(T*16)*.3));
    for(let i=lanterns.length-1;i>=0;i--){const L=lanterns[i];if(L.paper&&L.t<45)flutterL(L);if(L.hold){L.gl.material.opacity=.3+.5*Math.min(1,wishHold?wishHold.t/2:1);continue}L.t+=dt;const g=L.g;g.position.y+=dt*(L.far?.8+Math.min(2.2,L.t*.12):.5+Math.min(1,L.t*.08));g.position.x+=dt*(L.vx+wind*.6)*(L.far?2.5:1);g.position.z+=Math.sin(L.t*.5+L.ph)*.004;g.rotation.y+=dt*.2;
      const LT=L.far?150:80;L.gl.material.opacity=(.65+.3*Math.sin(T*9+L.ph))*(L.t>LT?Math.max(0,1-(L.t-LT)/15):1);if(L.t>LT+15){scene.remove(g);lanterns.splice(i,1)}}
-   for(let i=boats.length-1;i>=0;i--){const B=boats[i];B.t+=dt;B.x+=dt*(B.far?1.3:.7);if(!B.far&&B.t>45){B.g.scale.multiplyScalar(.97);if(B.g.scale.x<.05){scene.remove(B.g);boats.splice(i,1);continue}}const z=zs(B.x)+B.off,dz=zs(B.x+.5)-zs(B.x-.5);B.g.position.set(B.x,GH(B.x,zs(B.x))+.58+Math.sin(T*2+B.ph)*.03,z);B.g.rotation.set(Math.sin(T*1.7+B.ph)*.06,-Math.atan2(dz,1),Math.sin(T*2.1+B.ph)*.05);
+   for(let i=boats.length-1;i>=0;i--){const B=boats[i];B.t+=dt;B.x+=dt*(B.far?1.3:.7);if(!B.far&&B.t>45){B.g.scale.multiplyScalar(.97);if(B.g.scale.x<.05){scene.remove(B.g);boats.splice(i,1);continue}}const z=zs(B.x)+B.off,dz=zs(B.x+.5)-zs(B.x-.5);B.g.position.set(B.x,GH(B.x,zs(B.x))+.58+flood*.7+Math.sin(T*2+B.ph)*.03,z);B.g.rotation.set(Math.sin(T*1.7+B.ph)*.06,-Math.atan2(dz,1),Math.sin(T*2.1+B.ph)*.05);
      B.gl.material.opacity=.6+.3*Math.sin(T*10+B.ph);if(B.x>125){scene.remove(B.g);boats.splice(i,1)}}}
   fam.children.forEach(g=>{const P=g.userData.pet;if(!P)return;const md=P.p.mode||'rest';let tx,tz;
     if(md==='follow'){const a=player.ry+Math.PI+(P.i%2?.7:-.7)*(1+Math.floor(P.i/2)*.4),d=1.3+Math.floor(P.i/2)*.7;tx=player.x+Math.sin(a)*d;tz=player.z+Math.cos(a)*d;if(Math.hypot(g.position.x-tx,g.position.z-tz)>30){g.position.x=tx;g.position.z=tz}}
@@ -1550,7 +1610,7 @@ function seg(el,opts,get,set){el.innerHTML='';opts.forEach(([v,t])=>{const b=doc
 $('bGlow').setAttribute('aria-pressed',S.glowPrev);$('bGlow').textContent=S.glowPrev?'미리보기 끄기':'빛나는 들판 미리보기';
 $('bGlow').onclick=()=>{S.glowPrev=!S.glowPrev;save();$('bGlow').setAttribute('aria-pressed',S.glowPrev);$('bGlow').textContent=S.glowPrev?'미리보기 끄기':'빛나는 들판 미리보기';toast(S.glowPrev?(night>.5?'들판의 꽃들이 하나둘 빛나기 시작해요':'빛나는 들판은 밤에 보여요. 시간에서 \'밤\'을 골라 보세요'):'미리보기를 껐어요',3500)};
 $('bLive').onclick=()=>{S.time='live';S.season='live';S.wx='auto';save();seg($('segTime'),TOPT,()=>S.time,v=>S.time=v);seg($('segSeason'),SOPT,()=>S.season,v=>S.season=v);seg($('segWx'),WOPT,()=>S.wx,v=>S.wx=v);hudT=0;toast('지금 날짜·시간·계절로 맞췄어요')};
-const TOPT=[['live','지금'],['morning','아침'],['noon','낮'],['dusk','노을'],['night','밤']],SOPT=[['live','지금 계절'],['0','봄'],['1','여름'],['2','가을'],['3','겨울']],WOPT=[['auto','오늘 날씨'],['clear','맑음'],['cloudy','흐림'],['rain','비'],['snow','눈']];
+const TOPT=[['live','지금'],['morning','아침'],['noon','낮'],['dusk','노을'],['night','밤']],SOPT=[['live','지금 계절'],['0','봄'],['1','여름'],['2','가을'],['3','겨울']],WOPT=[['auto','오늘 날씨'],['clear','맑음'],['cloudy','흐림'],['rain','비'],['monsoon','장마'],['storm','태풍'],['snow','눈']];
 seg($('segTime'),TOPT,()=>S.time,v=>{S.time=v;hudT=0});seg($('segSeason'),SOPT,()=>S.season,v=>{S.season=v;hudT=0});seg($('segWx'),WOPT,()=>S.wx,v=>{S.wx=v;hudT=0});
 const MIX=[['master','전체 크기'],['stream','시냇물'],['wind','바람과 풀잎'],['birds','새소리·동물'],['fire','장작 타는 소리'],['bugs','풀벌레·매미'],['rain','빗소리']];
 $('mix').innerHTML=MIX.map(([k,n])=>`<label for="m-${k}">${n}</label><input type="range" id="m-${k}" min="0" max="${k==='master'?150:100}" value="${Math.round(S.vol[k]*100)}"><output id="o-${k}">${Math.round(S.vol[k]*100)}</output>`+(k==='master'?'<span></span>':`<button id="t-${k}" aria-pressed="${S.on[k]!==false}" aria-label="${n} 켜고 끄기">${S.on[k]!==false?'켬':'끔'}</button>`)).join('');
@@ -1563,6 +1623,9 @@ $('vCoat').onclick=()=>{S.coat=S.coat===false;save()};
 const closeMenu=()=>{$('views').hidden=true;$('menuBtn').setAttribute('aria-expanded','false')};$('menuBtn').onclick=e=>{e.stopPropagation();const o=$('views').hidden;$('views').hidden=!o;$('menuBtn').setAttribute('aria-expanded',o)};
 cv.addEventListener('pointerdown',closeMenu);$('views').addEventListener('click',e=>{if(e.target.closest('button'))closeMenu()});
 $('vThird').onclick=()=>setView('third');$('vFirst').onclick=()=>setView('first');$('vStars').onclick=()=>setView('stars');$('vStream').onclick=()=>setView('stream');
+$('vLie').onclick=()=>{$('views').hidden=true;lieHere()};
+document.querySelectorAll('#segSite button').forEach(b=>b.onclick=()=>{if(worldO){toast('함께 캠핑 중에는 방장만 캠핑장을 옮길 수 있어요');return}S.campSite=+b.dataset.v;save();relocate(S.campSite)});
+{const ra=$('rainAmt'),lab=v=>v<.6?'조금':v<1.3?'보통':v<1.7?'많이':'아주 많이';ra.value=S.rainAmt??1;$('rainAmtL').textContent=lab(+ra.value);ra.oninput=()=>{S.rainAmt=+ra.value;$('rainAmtL').textContent=lab(S.rainAmt);save()}}
 $('vDuck').onclick=()=>{S.duckOut=!S.duckOut;save();duckUI();toast(S.duckOut?'노란 눈오리 집게를 꺼냈어요. 눈 위에서 눈오리를 만들어 봐요':'눈오리 집게를 주머니에 넣었어요',2200);$('views').hidden=true};
 $('vNet').onclick=()=>{netToggle();toast(S.netOut?'주머니에서 잠자리채를 꺼냈어요':'잠자리채를 주머니에 쏙 넣었어요',1500)};$('vNet').textContent=S.netOut?'잠자리채 주머니에 넣기':'잠자리채 꺼내기';$('vNet').setAttribute('aria-pressed',S.netOut);
 $('pFly').onclick=()=>startFly();
