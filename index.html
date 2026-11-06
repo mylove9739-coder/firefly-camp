@@ -306,10 +306,10 @@ const starG=new THREE.BufferGeometry(),NS=3200,sp=new Float32Array(NS*3),ssz=new
   else{const a=r()*Math.PI*2,w=(r()+r()+r()-1.5)*.16;x=Math.cos(a);y=w;z=Math.sin(a);const v=new THREE.Vector3(x,y,z).applyAxisAngle(new THREE.Vector3(1,0,.3).normalize(),1.05).normalize();x=v.x;y=v.y;z=v.z;ssz[i]=.7+r()*.8}
   sp[i*3]=x*400;sp[i*3+1]=Math.abs(y)*400-20;sp[i*3+2]=z*400;ssd[i]=r()*100}}
 starG.setAttribute('position',new THREE.BufferAttribute(sp,3));starG.setAttribute('aS',new THREE.BufferAttribute(ssz,1));starG.setAttribute('aD',new THREE.BufferAttribute(ssd,1));
-const starU={uOp:{value:0},uT:{value:0},uPx:{value:R.getPixelRatio()}};
+const starU={uOp:{value:0},uT:{value:0},uPx:{value:R.getPixelRatio()},uBig:{value:1}};
 const stars=new THREE.Points(starG,new THREE.ShaderMaterial({uniforms:starU,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
-  vertexShader:`attribute float aS,aD;uniform float uT,uPx;varying float vA;void main(){vA=.65+.35*sin(uT*(1.+mod(aD,3.))+aD);gl_PointSize=aS*uPx*1.6;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-  fragmentShader:`uniform float uOp;varying float vA;void main(){float d=length(gl_PointCoord-.5);float a=smoothstep(.5,.0,d);gl_FragColor=vec4(vec3(1.,.97,.9),a*vA*uOp);}`}));
+  vertexShader:`attribute float aS,aD;uniform float uT,uPx,uBig;varying float vA;varying vec3 vC;void main(){float tw=sin(uT*(1.3+mod(aD,3.1))+aD)*.5+.5,tw2=sin(uT*(5.7+mod(aD*7.,4.))+aD*3.)*.5+.5;vA=.45+.4*tw+.25*tw2*tw2;float h=fract(aD*.137);vC=h<.2?vec3(.75,.85,1.):h<.35?vec3(1.,.88,.72):vec3(1.,.97,.92);gl_PointSize=aS*uPx*1.6*uBig*(.85+.3*tw2);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`uniform float uOp,uBig;varying float vA;varying vec3 vC;void main(){vec2 q=gl_PointCoord-.5;float d=length(q);float core=smoothstep(.16,.0,d),glow=smoothstep(.5,.0,d)*.55,sp=(smoothstep(.05,.0,abs(q.x))+smoothstep(.05,.0,abs(q.y)))*smoothstep(.5,.1,d)*.35*(uBig-1.);gl_FragColor=vec4(vC,(core+glow+sp)*vA*uOp);}`}));
 const skyG=new THREE.Group();skyG.add(stars);scene.add(skyG);
 const moonCv=document.createElement('canvas');moonCv.width=moonCv.height=256;const moonTex=new THREE.CanvasTexture(moonCv);
 const moon=new THREE.Sprite(new THREE.SpriteMaterial({map:moonTex,transparent:true,fog:false,depthWrite:false}));moon.scale.set(26,26,1);moon.renderOrder=-1;scene.add(moon);
@@ -323,7 +323,7 @@ function drawMoon(age){const g=moonCv.getContext('2d'),r=104,c=128;g.clearRect(0
   g.globalCompositeOperation='source-atop';g.fillStyle='rgba(150,140,110,.18)';[[-30,-20,22],[25,15,16],[-10,40,14],[40,-35,10]].forEach(([x,y,rr])=>{g.beginPath();g.arc(c+x,c+y,rr,0,6.283);g.fill()});g.globalCompositeOperation='source-over';
   moonTex.needsUpdate=true;moonFrac=(1-k)/2}
 const shoot=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0,fog:false}));scene.add(shoot);
-let shootT=-1,shootA=new THREE.Vector3(),shootB=new THREE.Vector3(),nextShoot=6;
+let shootT=-1,shootA=new THREE.Vector3(),shootB=new THREE.Vector3(),nextShoot=6;const shootS=[];for(let i=0;i<14;i++){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:softTex,color:0xfff4dc,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,opacity:0}));sp.renderOrder=-1;scene.add(sp);shootS.push(sp)}
 
 /* 구름 */
 const clouds=[];{const r=rng(9);for(let i=0;i<26;i++){const m=new THREE.Sprite(new THREE.SpriteMaterial({map:cloudTex,transparent:true,depthWrite:false,fog:false,opacity:0}));
@@ -671,14 +671,14 @@ const topNest=new THREE.Group();{const [x,y,z]=stairPos(1);topNest.position.set(
 let climb=null;const stairBase=()=>stairPos(0);
 const baseRing=new THREE.Mesh(new THREE.RingGeometry(.8,1.15,40),new THREE.MeshBasicMaterial({color:0xffe6a0,transparent:true,opacity:.5,depthWrite:false,side:THREE.DoubleSide}));{const b=stairPos(0);baseRing.position.set(b[0],GH(b[0],b[2])+.05,b[2]);baseRing.rotation.x=-Math.PI/2;baseRing.userData.tap='stairs';scene.add(baseRing)}
 function startClimb(down){if(climb&&climb.ph!=='top')return;clearTgt();$('choice').hidden=true;if(player.pose!=='walk')setPose('walk');if(viewMode!=='third')setView('third',1);climb={ph:down?'down':'up',u:down?1:0};toast(down?'빛의 계단을 따라 천천히 내려가요':'빛의 계단을 따라 소원나무 꼭대기로 올라가요',2600)}
-function topMenu(){ask('소원나무 꼭대기에 올라왔어요. 별과 캠핑장이 한눈에 보여요',[['앉아서 쉬기',()=>{setPose('sit');player.sit.children[0].visible=false;climbLift();topMenu()}],['누워서 하늘 보기',()=>{setPose('lie');climbLift();look.yaw=Math.PI-player.ry;look.pitch=1.0;viewMode='stars';topMenu()}],['내려가기',()=>{if(viewMode==='stars')setView('third',1);setPose('walk');startClimb(true)}]],true)}
+function topMenu(){ask('소원나무 꼭대기에 올라왔어요. 별과 캠핑장이 한눈에 보여요',[['앉아서 쉬기',()=>{setPose('sit');player.sit.children[0].visible=false;climbLift();toast('\'일어나기\'를 누르면 다시 메뉴가 나와요',2200)}],['누워서 하늘 보기',()=>{setPose('lie');climbLift();look.yaw=Math.PI-player.ry;look.pitch=1.0;viewMode='stars';toast('하늘을 끌어서 둘러보세요. \'일어나기\'를 누르면 메뉴가 나와요',2600)}],['내려가기',()=>{if(viewMode==='stars')setView('third',1);setPose('walk');startClimb(true)}]],true)}
 function climbLift(){const[x,y,z]=stairPos(climb?climb.u:1);player.x=x;player.z=z;player.lift=y-WH(x,z)+(player.pose==='lie'?.05:0)}
 function updClimb(dt){const P=stairSpk.geometry.attributes,nt=sst(.15,.85,night);ssk.forEach((q,i)=>{const[x,y,z]=stairPos(q.u),a=STR.a0+q.u/.86*STR.turns*Math.PI*2;q.h+=dt*.25;if(q.h>.9)q.h=0;P.position.array.set([x+Math.cos(a)*q.o,y+q.h,z+Math.sin(a)*q.o],i*3);P.aC.array.set([1,.88,.55,(.25+.6*nt)*Math.sin(q.h/.9*Math.PI)],i*4);P.aS.array[i]=.22});P.position.needsUpdate=P.aC.needsUpdate=P.aS.needsUpdate=true;
   stairM.opacity=.45+.4*nt;topNest.userData.ng.material.opacity=.15+.5*nt;const cu=climb?climb.u:-1;stairs.visible=!!climb;topNest.visible=!!climb;stairSpk.visible=!!climb;baseRing.material.opacity=climb?0:.35+.35*nt+.15*Math.sin(T*2);
   if(climb){const o=new THREE.Object3D(),m=new THREE.Matrix4(),dir=climb.ph==='down'?-1:1;for(let i=0;i<NSTEP;i++){const u=i/(NSTEP-1),du=(u-cu)*dir;let sc=0;if(du>-.012&&du<.035){sc=du<0?1+du/.012:du>.022?1-(du-.022)/.013:1}
     const [x,y,z]=stairPos(u),[x2,,z2]=stairPos(u+.004);o.position.set(x,y-.06-(1-sc)*.3,z);o.rotation.set(0,Math.atan2(x2-x,z2-z)+Math.PI/2,0);o.scale.setScalar(Math.max(.0001,sc));o.updateMatrix();stairs.setMatrixAt(i,o.matrix)}stairs.instanceMatrix.needsUpdate=true;
     ssk.forEach(q=>{if(Math.abs(q.u-cu)>.03)q.u=cu+(Math.random()*.045-.012)*dir})}
-  if(!climb)return false;if(climb.ph==='top'){climbLift();if(player.pose==='walk'&&$('choice').hidden)topMenu();return false}
+  if(!climb)return false;if(climb.ph==='top'){climbLift();if(player.pose==='walk'&&$('choice').hidden){if(viewMode==='stars')setView('third',1);topMenu()}return false}
   const L=1/190;climb.u+=(climb.ph==='up'?1:-1)*dt*2.2*L*((climb.u>.86)?.55:1);const[x,y,z]=stairPos(climb.u),[x2,,z2]=stairPos(climb.u+(climb.ph==='up'?.003:-.003));player.x=x;player.z=z;player.lift=y-WH(x,z);player.ry=Math.atan2(x2-x,z2-z);player.walk+=dt*2.2*2.6;animWalk(2.2);player.follow=true;
   if(climb.ph==='up'&&climb.u>=1){climb.u=1;climb.ph='top';sfx('hang');toast('소원나무 꼭대기에 도착했어요! 따뜻한 빛이 감싸 줘요',3200);topMenu()}
   if(climb.ph==='down'&&climb.u<=0){climb=null;player.lift=0;toast('땅에 내려왔어요',1500)}
@@ -708,8 +708,35 @@ let chatT=6;function fairyTalk(f,line){say(fairyTg(f),`요정 ${f.name}`,line||p
 const wishTg={key:'fairy',pos:v=>v.copy(fairy.position).add(new THREE.Vector3(0,1.9,0))};
 function queueOrb(slot){const f=tinyF.find(f=>!f.job);if(!f){setWishOrbs(slot+1);return}const loc=fairy.position.clone().sub(wishTree.position).add(new THREE.Vector3(.7,1.5,.3));
   f.job={st:0,t:0,slot,from:f.g.position.clone(),meet:loc};orbJobs.push(f)}
-function updTinyF(dt){if(near(38)){chatT-=dt;if(chatT<=0){chatT=7+Math.random()*7;const fr=tinyF.filter(f=>!f.job);if(fr.length)fairyTalk(pick(fr))}}
+const FG={greet:['{v} 기다렸어! 얼마나 보고 싶었다구!','{v} 왔구나! 오늘도 와 줘서 정말 고마워','어? {n}다! 반가워, 반가워!','{v}, 소원나무가 너 오는 걸 알고 더 반짝였어','{v} 발소리 듣자마자 바로 날아왔지!','{v}, 보고 싶었어. 오늘은 오래 있다 가~'],
+ ask:['{v}, 오늘은 어떤 일이 있었어?','{v}, 오늘 마음은 어땠어? 나한테만 살짝 얘기해 줄래?','{v}, 오늘 제일 좋았던 순간은 뭐였어?','{v}, 요즘 너를 웃게 하는 건 뭐야?','{v}, 오늘 누구한테 고마웠어?'],
+ cheer:['{v}, 오늘 하루도 고생했어~ 좀 더 쉬다 가~','{v}, 넌 지금 충분히 잘하고 있어. 정말로!','{v}, 힘든 날도 있지만 넌 늘 반짝반짝 빛나','{v}, 오늘은 아무것도 안 해도 괜찮아','{v}, 네가 웃으면 나뭇잎들도 같이 웃어','{v}, 천천히 가도 돼. 너만의 속도가 제일 예뻐','{v}, 혼자가 아니야. 우리가 늘 여기 있을게','{v}, 오늘 애쓴 너를 꼭 안아 주고 싶어'],
+ morning:['{v}, 좋은 아침! 오늘도 반짝이는 하루가 될 거야','{v}, 아침 이슬처럼 상쾌한 하루 보내!','{v}, 아침은 먹었어? 든든하게 챙겨 먹어야 해'],
+ noon:['{v}, 점심은 맛있게 먹었어?','{v}, 햇살 따뜻하지? 잠깐 눈 감고 쉬어 가','{v}, 오후도 너의 속도대로 천천히 가면 돼'],
+ evening:['{v}, 노을이 참 예쁘다. 오늘도 수고 많았어','{v}, 저녁은 든든하게 챙겨 먹었어?','{v}, 하루를 잘 마무리하고 있구나. 대견해'],
+ night:['{v}, 오늘 하루도 정말 정말 고생했어','{v}, 별들이 너 보러 나왔나 봐','{v}, 따뜻하게 하고 푹 자야 해. 좋은 꿈 꿔'],
+ late:['{v}, 아직 안 잤어? 마음이 복잡한 밤이야?','{v}, 늦게까지 애썼어. 이제 눈 감아도 괜찮아','{v}, 걱정은 소원나무에 맡기고 푹 쉬어'],
+ rain:['{v}, 비 오는 날엔 마음도 촉촉해지지. 감기 조심해','{v}, 빗소리 들으면서 잠깐 쉬어 가자','{v}, 우비 정말 잘 어울려!'],
+ storm:['{v}, 바람이 세니까 오늘은 따뜻한 곳에 있자','{v}, 비가 많이 와도 우리가 곁에 있을게'],
+ snow:['{v}, 눈이 와! 손 시리지 않게 꼭 장갑 껴','{v}, 하얀 눈처럼 포근한 하루였으면 좋겠어','{v}, 눈오리 만들었어? 나도 하나 갖고 싶다!'],
+ clear:['{v}, 오늘 하늘 정말 맑지? 꼭 너처럼!'],
+ spring:['{v}, 꽃냄새 맡았어? 봄이 너한테 인사하나 봐','{v}, 벚꽃잎이 네 어깨에 앉았어. 예쁘다!'],
+ summer:['{v}, 더운데 물 많이 마셔야 해','{v}, 매미 소리 들려? 여름이 한창이야'],
+ autumn:['{v}, 단풍잎 하나 줄까? 너 닮아서 예뻐','{v}, 바람이 선선하지? 따뜻한 차 한 잔 어때?'],
+ winter:['{v}, 추운데 와 줘서 고마워. 소원나무 곁은 따뜻해','{v}, 호호 손 녹여 줄게. 이리 와!'],
+ glow:['{v}, 오늘은 들판이 빛나는 날이야. 소원나무도 쉬는 중이래']};
+function vocative(n){const c=n.charCodeAt(n.length-1);if(c>=0xAC00&&c<=0xD7A3)return n+((c-0xAC00)%28?'아':'야');return n+'!'}
+function fairyLine(first){const ck=ck0||clock(),h=ck.hour,keys=first?['greet']:['ask','cheer',h>=5&&h<10?'morning':h<16&&h>=10?'noon':h<20&&h>=16?'evening':h>=20?'night':'late',{rain:'rain',monsoon:'rain',storm:'storm',snow:'snow',clear:'clear'}[ck.wx]||'cheer',['spring','summer','autumn','winter'][ck.season]];if(!first&&glowDay(ck))keys.push('glow');
+  if(!S.fUsed)S.fUsed=[];let pool=[];keys.forEach(k=>(FG[k]||[]).forEach(l=>pool.push(l)));let fresh=pool.filter(l=>!S.fUsed.includes(l));if(!fresh.length){S.fUsed=S.fUsed.filter(l=>!pool.includes(l));fresh=pool}
+  const l=pick(fresh);S.fUsed.push(l);if(S.fUsed.length>80)S.fUsed.shift();save();const n=ME().name||'친구';return l.replace('{v}',vocative(n)).replace('{n}',n)}
+let fvNext=0,fvNear=false;
+function updFairyVisit(dt){const nearT=Math.hypot(player.x-PK.x,player.z-PK.z)<30&&!roomAt();if(nearT&&!fvNear){fvNext=T+1.5;fvNear='first'}if(!nearT){fvNear=false;return}
+  if(T>fvNext&&!tinyF.some(f=>f.visit)){const fr=tinyF.filter(f=>!f.job);if(fr.length){const f=pick(fr);f.visit={t:0,first:fvNear==='first',said:false};fvNear=true;fvNext=T+20+Math.random()*12}}}
+function updTinyF(dt){updFairyVisit(dt);if(near(38)&&!tinyF.some(f=>f.visit)){chatT-=dt;if(chatT<=0){chatT=7+Math.random()*7;const fr=tinyF.filter(f=>!f.job);if(fr.length)fairyTalk(pick(fr))}}
   tinyF.forEach((f,i)=>{f.ws.forEach(w=>w.rotation.y=w.userData.s*(1.05+Math.sin(T*(treeRest>.5?8:20)+i)*.3));f.gl.material.opacity=.35+.4*(1-treeRest*.5);
+  if(f.visit){const V=f.visit;V.t+=dt;const side=(V.side=V.side||(Math.random()<.5?-1:1)),tx=player.x-PK.x+Math.cos(player.ry)*.9*side,tz=player.z-PK.z-Math.sin(player.ry)*.9*side,ty=WH(player.x,player.z)+player.lift+1.75-WT.y+Math.sin(T*2.5)*.15;const tgtP=new THREE.Vector3(tx,ty,tz);
+    if(V.t<9){f.g.position.lerp(tgtP,Math.min(1,dt*(V.t<2.5?1.6:4)));f.g.lookAt(f.g.position.x+(player.x-PK.x-f.g.position.x),f.g.position.y,f.g.position.z+(player.z-PK.z-f.g.position.z));if(!V.said&&f.g.position.distanceTo(tgtP)<1.2){V.said=true;fairyTalk(f,fairyLine(V.first));if(ac&&soundOn)chime(ac.currentTime,1568,.04,0)}}
+    else{const home=new THREE.Vector3(Math.cos(f.a)*f.r,f.y,Math.sin(f.a)*f.r);f.g.position.lerp(home,Math.min(1,dt*1.2));if(V.t>13)f.visit=null}return}
   if(!f.job){f.a+=dt*f.sp*(1-treeRest*.7);f.g.position.set(Math.cos(f.a)*f.r,f.y+Math.sin(T*1.3+i)*.6-treeRest*2,Math.sin(f.a)*f.r);f.g.rotation.y=-f.a;return}
   const J=f.job;J.t+=dt;const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
   if(J.st===0){const t=Math.min(1,J.t/2.2),p=J.from.clone().lerp(J.meet,ease(t));p.y+=Math.sin(t*Math.PI)*2;f.g.position.copy(p);if(t>=1){J.st=1;J.t=0;if(near(30))fairyTalk(f,pick(['소원을 잘 받았어요. 소원이와 함께 읽어 볼게요','따뜻한 소원이네요. 꼭 이루어질 거예요','이 소원, 반짝반짝 빛나요']))}}
@@ -1106,7 +1133,7 @@ function updateEnv(dt,ck){
   const age=Math.max(0,lunarDay(ck.d)-1);if(age!==moonAge){moonAge=age;drawMoon(age)}let mh=((ck.hour-age*24/29.53-6)%24+24)%24,mp=mh/12;const mdir=new THREE.Vector3(Math.cos(Math.PI*mp),Math.sin(Math.PI*mp)*.78,-.5).normalize();if(mp>1)mdir.y=-Math.abs(mdir.y)-.1;
   moon.position.copy(cam.position).addScaledVector(mdir,360);moonGlow.position.copy(moon.position);const mUp=sst(-.03,.08,mdir.y);moon.material.opacity=mUp*Math.max(.18,Math.min(1,night*1.2))*(1-cl*.8);moonGlow.material.opacity=mUp*night*(1-cl*.85)*.35*moonFrac;
   sunDisc.position.copy(cam.position).addScaledVector(sunDir,360);sunHalo.position.copy(sunDisc.position);const sUp=sst(-.06,.05,sunDir.y);sunDisc.material.opacity=sUp*(1-cl*.9);sunHalo.material.opacity=sUp*(1-cl*.9)*.45;sunDisc.material.color.set(tw>.3?'#ffc890':'#fff6dc');
-  starU.uOp.value=night*(1-cl*.92)*(viewMode==='stars'?1.25:1)*(1+glowAmt*.5);skyG.position.copy(cam.position);skyG.rotation.y+=dt*.004;
+  starU.uOp.value=night*(1-cl*.92)*(viewMode==='stars'?1.35:1)*(1+glowAmt*.5);starU.uBig.value+=((viewMode==='stars'?1.9:1)-starU.uBig.value)*Math.min(1,dt*2);skyG.position.copy(cam.position);skyG.rotation.y+=dt*.004;
   const lc=.25+.8*day*(1-.3*cl);grassU.uLC.value.set(lc*(tmpB.r*.3+.7),lc*(tmpB.g*.3+.7),lc*(tmpB.b*.3+.7));
   waterU.uSky.value.copy(tmpB);waterU.uTop.value.copy(tmpA);if(day>.05){waterU.uGl.value.copy(sunDir);waterU.uGlC.value.copy(skyU.uSunCol.value);waterU.uGlA.value=skyU.uSun.value}else{waterU.uGl.value.copy(mdir);waterU.uGlC.value.set('#dfe6ff');waterU.uGlA.value=moon.material.opacity*.6}waterU.uL.value=.25+.75*day;waterU.uRain.value=env.rain;
   clouds.forEach(c=>{c.position.x+=dt*c.userData.v*(1+wind*2);if(c.position.x>260)c.position.x=-260;c.material.opacity=.12+cl*.8;c.material.color.copy(gray).lerp(C('#ffffff'),day*(1-cl*.4)).lerp(C('#f2a37a'),tw*.4)});
@@ -1666,10 +1693,10 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;const 
     else if(md==='rest'){let d=P.hry-g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));g.rotation.y+=d*Math.min(1,dt*4)}
     const moving=dd>.25;g.position.y=WH(g.position.x,g.position.z)+(moving?Math.abs(Math.sin(P.hop))*(P.p.kind==='rabbit'?.28:.08):0)});
   fam.traverse(o=>{if(o.userData.wave)o.rotation.z=-.3+Math.sin(T*4)*.35;if(o.userData.wag)o.rotation.z=Math.sin(T*(o.userData.wag*12))*.5});
-  if(starU.uOp.value>.35){nextShoot-=dt*(viewMode==='stars'?2:1);if(nextShoot<=0&&shootT<0){shootT=0;nextShoot=7+Math.random()*12;const a=Math.random()*Math.PI*2,e=.5+Math.random()*.6;
+  if(starU.uOp.value>.35){nextShoot-=dt*(viewMode==='stars'?3.5:1);if(nextShoot<=0&&shootT<0){shootT=0;nextShoot=6+Math.random()*10;const a=Math.random()*Math.PI*2,e=.5+Math.random()*.6;
     shootA.set(Math.cos(a)*Math.cos(e),Math.sin(e),Math.sin(a)*Math.cos(e)).multiplyScalar(300);shootB.copy(shootA).add(new THREE.Vector3((Math.random()-.5)*160,-60-Math.random()*40,(Math.random()-.5)*160));
     if(viewMode==='stars'){S.stars++;save();setTimeout(()=>toast(`별똥별이 떨어졌어요! 소원을 빌어 보세요 (지금까지 ${S.stars}개)`),400)}}}
-  if(shootT>=0){shootT+=dt/.9;const a=Math.min(1,shootT),b=Math.max(0,shootT-.25);const pa=shootA.clone().lerp(shootB,a).add(cam.position),pb=shootA.clone().lerp(shootB,b).add(cam.position);shoot.geometry.setFromPoints([pb,pa]);shoot.material.opacity=Math.sin(Math.min(1,shootT)*Math.PI)*starU.uOp.value;if(shootT>1.25){shootT=-1;shoot.material.opacity=0}}
+  if(shootT>=0){shootT+=dt/1.3;{const op=Math.sin(Math.min(1,shootT)*Math.PI)*starU.uOp.value;shootS.forEach((sp,i)=>{const u=Math.max(0,Math.min(1,shootT)-i*.018);sp.position.copy(shootA).lerp(shootB,u).add(cam.position);const k=1-i/14;sp.scale.setScalar((i?3.2:7)*k*(viewMode==='stars'?1.4:1));sp.material.opacity=op*k*(i?.6:1)})}const a=Math.min(1,shootT),b=Math.max(0,shootT-.25);const pa=shootA.clone().lerp(shootB,a).add(cam.position),pb=shootA.clone().lerp(shootB,b).add(cam.position);shoot.geometry.setFromPoints([pb,pa]);shoot.material.opacity=Math.sin(Math.min(1,shootT)*Math.PI)*starU.uOp.value;if(shootT>1.25){shootT=-1;shoot.material.opacity=0;shootS.forEach(sp=>sp.material.opacity=0)}}
   posT-=dt;if(posT<=0){posT=3;S.pos=[+player.x.toFixed(2),+player.z.toFixed(2),+player.ry.toFixed(2)];save()}
   hudT-=dt;if(hudT<=0){hudT=1;const d=ck.d,days='일월화수목금토';const hh=Math.floor(ck.hour),mm=S.time==='live'?d.getMinutes():Math.round((ck.hour-hh)*60);
     $('hudDate').textContent=`${d.getMonth()+1}/${d.getDate()} (${days[d.getDay()]}) ${hh<12?'오전':'오후'} ${((hh+11)%12)+1}:${String(mm).padStart(2,'0')}${S.time==='live'?'':' 미리보기'}`;
