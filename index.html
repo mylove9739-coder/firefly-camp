@@ -55,6 +55,9 @@ h1{font-family:var(--display);font-size:clamp(22px,5vw,28px);margin:0;text-wrap:
 .stage.sledding .act,.stage.sledding .act2,.stage.sledding .pills{display:none!important}
 .choice.low{top:auto;bottom:112px;transform:translateX(-50%);max-width:calc(100% - 24px)}.choice .cb{flex-wrap:wrap}
 .chip.warn{background:#b3261e;color:#fff;animation:blink 1s infinite}@keyframes blink{50%{opacity:.45}}
+#hots{position:absolute;inset:0;pointer-events:none;z-index:4}#hots .hot{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;padding:0}
+#hots .hot i{font-style:normal;width:40px;height:40px;border-radius:50%;background:rgba(255,250,236,.92);box-shadow:0 2px 10px rgba(0,0,0,.35),0 0 0 3px rgba(255,214,120,.55);display:flex;align-items:center;justify-content:center;font-size:19px}#hots .hot span{font-size:11px;color:#fff;background:rgba(0,0,0,.5);border-radius:6px;padding:1px 5px;white-space:nowrap}
+.stage.driving .dpad{display:grid!important}.stage.driving .act{right:auto;left:10px}.stage.driving .act2,.stage.driving #hots{display:none}
 .fade{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .4s;z-index:5}
 .pills{position:absolute;left:10px;bottom:58px;display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;max-width:calc(100% - 320px)}.pills button{flex:none}
 .pills button{background:rgba(6,10,18,.62);border:1px solid rgba(255,255,255,.18);color:#f2ecdc;border-radius:999px;padding:7px 12px;font-size:13px;backdrop-filter:blur(4px)}
@@ -462,7 +465,7 @@ function updDuck(dt){const R=duckR;if(!R||!player.stand)return;R.t+=dt;const t=R
 const iceM=new THREE.MeshLambertMaterial({color:0xe6f3fb,transparent:true,opacity:.88}),ice=new THREE.InstancedMesh(new THREE.CircleGeometry(1,9),iceM,80);{const o=new THREE.Object3D(),r=rng(77);let n=0;for(let i=0;i<80;i++){const x=-110+r()*220;if(Math.abs(x-10)<4){continue}const off=(r()-.5)*10;o.position.set(x,GH(x,zs(x))+1.08,zs(x)+off);o.rotation.set(-Math.PI/2,0,r()*6);o.scale.set(1.2+r()*3,.7+r()*1.4,1);o.updateMatrix();ice.setMatrixAt(n,o.matrix);ice.setColorAt(n,C('#e6f3fb').offsetHSL(0,0,(r()-.5)*.08));n++}ice.count=n}ice.visible=false;scene.add(ice);
 function updWinter(dt){if(curSeason===3&&env.snow>.4)S.snowAcc=Math.min(1,S.snowAcc+dt/150);else if(curSeason!==3&&S.snowAcc>0)S.snowAcc=Math.max(0,S.snowAcc-dt/20);
   if(Math.abs(S.snowAcc-paintedAcc)>.04&&curSeason===3)paintGround(3);ice.visible=curSeason===3;ducksG.visible=curSeason===3&&S.snowAcc>.3;
-  tong.visible=!!S.duckOut&&player.pose==='walk'&&!wishHold&&!boatR&&!bung;updDuck(dt);updBung(dt);updBalls(dt);updComers(dt);updFlood(dt);updSwim(dt,player.moving);fallen.visible=curSeason===2;acorns.visible=curSeason===0;if(Math.random()<dt)duckUI()}
+  tong.visible=!!S.duckOut&&player.pose==='walk'&&!wishHold&&!boatR&&!bung;updDuck(dt);updBung(dt);updBalls(dt);updComers(dt);updFlood(dt);updSwim(dt,player.moving);updInterior(dt);fallen.visible=curSeason===2;acorns.visible=curSeason===0;if(Math.random()<dt)duckUI()}
 /* 눈싸움 */
 const balls=[],ballGeo=new THREE.SphereGeometry(.11,10,8),clumps=new THREE.Group();scene.add(clumps);
 const splP=particles(120,THREE.NormalBlending),spl=[];for(let i=0;i<120;i++)spl.push({t:9,p:new THREE.Vector3(),v:new THREE.Vector3()});
@@ -508,7 +511,7 @@ const warnPole=new THREE.Group();{const pl=new THREE.Mesh(new THREE.CylinderGeom
   const lt=new THREE.Mesh(new THREE.SphereGeometry(.13,12,8),new THREE.MeshBasicMaterial({color:0x551111}));lt.position.y=2.32;warnPole.add(lt);const lg=new THREE.Sprite(new THREE.SpriteMaterial({map:softTex,color:0xff3020,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:0}));lg.position.y=2.32;lg.scale.set(2.2,2.2,1);warnPole.add(lg);warnPole.userData={lt,lg}}
 {const x=-2,z=zs(-2)+9.6;warnPole.position.set(x,GH(x,z),z);warnPole.rotation.y=Math.PI;scene.add(warnPole);warnPole.traverse(o=>o.userData.tap='warn')}
 const SITES=[[-6.8,-2.6],[-9,10]];
-function relocate(site,quiet){curSite=site;const[x,z]=SITES[site];campPos.set(x,0,z);const l=Math.hypot(x,z);TDX=-x/l;TDZ=-z/l;TCX=x-TDX*2.3;TCZ=z-TDZ*2.3;Object.assign(MAINROOM,{x:TCX,z:TCZ,dx:TDX,dz:TDZ});VRc=null;
+function relocate(site,quiet){curSite=site;parkApplied=false;if(!quiet&&S.vanPark){S.vanPark=null;save()}const[x,z]=SITES[site];campPos.set(x,0,z);const l=Math.hypot(x,z);TDX=-x/l;TDZ=-z/l;TCX=x-TDX*2.3;TCZ=z-TDZ*2.3;Object.assign(MAINROOM,{x:TCX,z:TCZ,dx:TDX,dz:TDZ});VRc=null;
   Object.values(campObj).forEach(o=>{o.position.copy(campPos);o.lookAt(0,0,0)});[campObj.tent,campObj.glamp,campObj.van].forEach(T_=>{T_.userData.ti.position.y=(T_===campObj.van?GH(campPos.x-TDX*.3,campPos.z-TDZ*.3)+.05:GH(TCX,TCZ))-campPos.y});
   campSign.position.set(campPos.x+3.2*(site?1:1),GH(campPos.x+3.2,campPos.z+2.4),campPos.z+2.4);setCamp(S.camp,true);
   {const o=new THREE.Object3D(),m=new THREE.Matrix4();for(let i=0;i<grass.count;i++){grass.getMatrixAt(i,m);m.decompose(o.position,o.quaternion,o.scale);if(o.scale.x<.01&&!o.userData.k)continue;const near=Math.hypot(o.position.x-TCX,o.position.z-TCZ)<TRAD+.2||Math.hypot(o.position.x-x,o.position.z-z)<4.2;if(near&&o.scale.x>.01){o.scale.set(.0001,.0001,.0001);o.updateMatrix();grass.setMatrixAt(i,o.matrix)}}grass.instanceMatrix.needsUpdate=true}
@@ -534,6 +537,58 @@ function updSwim(dt,moving){const P=wsp.geometry.attributes;wsq.forEach((q,i)=>{
     if(Math.floor(strokeT/Math.PI)!==Math.floor((strokeT-dt*(moving?4.2:1.6))/Math.PI)){const fx=Math.sin(player.ry),fz=Math.cos(player.ry);drops(x+fx*.5,waterLevel(x),z+fz*.5,moving?8:3,.8);if(moving)splashSnd(false)}}
   else{if(wasSwim){player.lift=0;if(player.stand)player.stand.rotation.x=0;if(player.stand)player.stand.userData.arms.forEach(m=>m.rotation.x=0)}else if(player.lift<0&&player.pose==='walk')player.lift=0;
     if(player.wade&&moving){const st=Math.floor(player.walk/Math.PI);if(st!==wStep){wStep=st;const sd=st%2?1:-1,rx=Math.cos(player.ry)*.15*sd,rz=-Math.sin(player.ry)*.15*sd;drops(x+rx,waterLevel(x),z+rz,6+Math.round(depth*10),.6+depth);splashSnd(depth>.4)}}}}
+/* 실내 조작 버튼 · 운전 */
+const hotsEl=document.createElement('div');hotsEl.id='hots';document.getElementById('stage').appendChild(hotsEl);
+const HOTS=[];const vU=()=>campObj.van.userData,tU=()=>campObj.tent.userData,gU=()=>campObj.glamp.userData;
+function hot(room,ic,label,lp,fn,obj){const b=document.createElement('button');b.className='hot';b.innerHTML=`<i>${ic}</i><span>${label}</span>`;b.hidden=true;b.onclick=e=>{e.stopPropagation();fn(b)};hotsEl.appendChild(b);HOTS.push({room,b,lp:new THREE.Vector3(...lp),obj,label})}
+let vanAnim={door:1,cab:0,fridge:0,curt:0};const VS={door:true,cab:false,fridge:false,curt:false};
+function vanSnd(f,d,v){if(!ac||!soundOn)return;const n=ac.currentTime;burst(master,n,f,1.2,v||.8,.7,0,d||.12)}
+hot('van','💺','운전석',[2.05,1.0,-.55],()=>{curAct='driver';doAct()},'vi');
+hot('van','🚪','문',[-.6,1.25,1.3],b=>{VS.door=!VS.door;vU().doorClosed=!VS.door;vanSnd(400,.25,1.2);toast(VS.door?'옆문을 열었어요':'옆문을 닫았어요. 아늑해요',1500)},'vi');
+hot('van','🫖','주전자',[.95,1.2,-1.0],()=>{const U=vU();if(U.boil)return;U.boil=T;toast('버너에 불을 켰어요. 물이 끓을 때까지 조금만 기다려요',2200);vanSnd(2500,.3,.6)},'vi');
+hot('van','🚰','싱크대',[0,1.12,-1.0],()=>{const U=vU();U.water.visible=!U.water.visible;U.waterT=T;toast(U.water.visible?'졸졸졸 물을 틀었어요':'물을 잠갔어요',1400)},'vi');
+hot('van','🧊','냉장고',[1.05,.55,-.6],()=>{VS.fridge=!VS.fridge;vanSnd(700,.15,.8);toast(VS.fridge?'냉장고를 열었어요. 시원한 음료와 과일이 있어요':'냉장고를 닫았어요',1800)},'vi');
+hot('van','🗄️','수납장',[.45,2.1,-.9],()=>{VS.cab=!VS.cab;vanSnd(900,.12,.7);toast(VS.cab?'수납장을 열었어요. 차와 꿀, 쿠키가 들어 있어요':'수납장을 닫았어요',1800)},'vi');
+hot('van','🪟','커튼',[-2.2,1.5,-1.15],()=>{VS.curt=!VS.curt;toast(VS.curt?'커튼을 쳤어요. 포근해요':'커튼을 걷었어요. 바깥 풍경이 보여요',1500)},'vi');
+hot('van','💡','조명',[-.5,2.2,0],()=>{const U=vU();U.off=!U.off;toast(U.off?'조명을 껐어요':'조명을 켰어요',1200);vanSnd(3000,.04,.6)},'vi');
+hot('van','🛏️','침대',[-2.4,1.0,0],()=>{curAct='tent';doAct()},'vi');
+hot('van','🧳','짐칸',[-.95,.9,1.05],()=>cargoMenu(),'vi');
+hot('van','📻','라디오',[2.8,1.12,0],()=>{radioOn=!radioOn;toast(radioOn?'라디오에서 잔잔한 노래가 흘러나와요':'라디오를 껐어요',1600)},'vi');
+hot('van','📖','책',[-1.2,.95,-.45],()=>toast(pick(['"오늘도 수고한 나에게" — 한 장 넘길 때마다 마음이 편해져요','그림책 속 숲에도 반딧불이가 살고 있어요','책갈피 사이에 말린 네잎클로버가 끼워져 있어요']),2600),'vi');
+hot('tent','🛌','침낭',[.75,.5,-.9],()=>{curAct='tent';doAct()},'ti');
+hot('tent','☕','머그잔',[.4,.35,1.5],()=>{toast('따뜻한 코코아를 한 모금 마셨어요. 몸이 사르르 녹아요',2200);vanSnd(600,.2,.5)},'ti');
+hot('tent','🎒','배낭',[-2.3,.9,.3],()=>toast('배낭 안에는 손전등, 마시멜로, 그림책이 들어 있어요',2200),'ti');
+hot('tent','💡','조명',[0,2.2,0],()=>{const U=tU();U.off=!U.off;toast(U.off?'조명을 껐어요':'조명을 켰어요',1200)},'ti');
+hot('glamp','🛏️','이불',[.75,.6,-.9],()=>{curAct='tent';doAct()},'gi');
+hot('glamp','🔥','난로',[2.4,.8,.4],()=>{const U=gU();U.boost=U.boost?0:.6;toast(U.boost?'난로를 켰어요. 벨텐트가 훈훈해져요':'난로를 껐어요',1600)},'gi');
+hot('glamp','💡','조명',[0,2.4,0],()=>{const U=gU();U.off=!U.off;toast(U.off?'조명을 껐어요':'조명을 켰어요',1200)},'gi');
+const _hp=new THREE.Vector3();let roomSc=1,parkApplied=false;
+function updInterior(dt){const m=roomAt(),rk=m&&m.main?(m.rect?'van':S.camp):null;
+  const target=m?.72:1;roomSc+=(target-roomSc)*Math.min(1,dt*4);if(player.g)player.g.scale.setScalar(roomSc);
+  if(!parkApplied){parkApplied=true;if(S.vanPark){const v=campObj.van;v.position.set(S.vanPark.x,0,S.vanPark.z);v.rotation.set(0,S.vanPark.ry,0);placeVanY();setCamp(S.camp,true)}}const st0=$('stage'),W=st0.clientWidth,H=st0.clientHeight;HOTS.forEach(h=>{const show=rk===h.room&&!drive;if(!show){h.b.hidden=true;return}const par=h.room==='van'?campObj.van.userData.ti:h.room==='tent'?campObj.tent.userData.ti:campObj.glamp.userData.ti;_hp.copy(h.lp);par.localToWorld(_hp);const dist=_hp.distanceTo(cam.position);_hp.project(cam);
+    if(_hp.z>1||dist>6.5||Math.abs(_hp.x)>1.05||Math.abs(_hp.y)>1.05){h.b.hidden=true;return}h.b.hidden=false;h.b.style.left=((_hp.x+1)/2*W)+'px';h.b.style.top=((1-_hp.y)/2*H)+'px';h.b.style.opacity=Math.max(.35,Math.min(1,1.6-dist/5))});
+  const U=campObj.van.userData;const k=Math.min(1,dt*5);vanAnim.door+=((VS.door?1:0)-vanAnim.door)*k;U.door.position.x=-.9+1.4*(1-vanAnim.door);U.door.position.z=1.35+.12-.0*vanAnim.door;
+  vanAnim.cab+=((VS.cab?1:0)-vanAnim.cab)*k;U.cab.forEach(pv=>pv.rotation.y=pv.userData.sd*1.6*vanAnim.cab);vanAnim.fridge+=((VS.fridge?1:0)-vanAnim.fridge)*k;U.fridge.rotation.y=1.7*vanAnim.fridge;U.fridgeL.visible=vanAnim.fridge>.3;U.fItems.forEach(b=>b.visible=vanAnim.fridge>.3);
+  vanAnim.curt+=((VS.curt?1:0)-vanAnim.curt)*k;U.curtains.forEach(c=>{c.scale.x=1+2.6*vanAnim.curt;c.position.x=c.userData.cx+(c.userData.mid-c.userData.cx)*.55*vanAnim.curt});
+  if(U.water.visible){U.water.scale.y=.9+.2*Math.sin(T*30);if(ac&&soundOn&&Math.random()<.5)burst(master,ac.currentTime,1500+Math.random()*2500,1.5,.25,1,0,.05);if(T-U.waterT>6){U.water.visible=false}}
+  if(U.boil){const e2=T-U.boil;U.flame.material.opacity=e2<7?.9:0;if(e2>4&&e2<7){if(ac&&soundOn&&Math.random()<.3){const n=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.frequency.value=1900+Math.sin(T*30)*120;g.gain.setValueAtTime(.02,n);g.gain.linearRampToValueAtTime(0,n+.12);o.connect(g);g.connect(master);o.start(n);o.stop(n+.13)}}if(e2>7){U.boil=0;toast('삐익~ 물이 끓었어요. 따뜻한 차를 한 잔 마셔요',2400)}}}
+/* 운전 */
+let drive=null,engine=null;
+function startDrive(){if(worldO){toast('함께 캠핑 중에는 방장만 캠핑카를 운전할 수 있어요');return}drive={sp:0,st:0};$('choice').hidden=true;$('stage').classList.add('driving');drvOn=false;VS.door=false;campObj.van.userData.doorClosed=true;toast('부릉! 시동을 걸었어요. 방향키 ▲▼로 앞뒤, ◀▶로 핸들을 돌려요',3200);
+  if(ac&&soundOn){const n=ac.currentTime,o=ac.createOscillator(),o2=ac.createOscillator(),lp=ac.createBiquadFilter(),g=ac.createGain();o.type='sawtooth';o2.type='square';o.frequency.value=38;o2.frequency.value=19;lp.type='lowpass';lp.frequency.value=260;g.gain.value=0;g.gain.linearRampToValueAtTime(.16,n+.6);o.connect(lp);o2.connect(lp);lp.connect(g);g.connect(master);o.start(n);o2.start(n);engine={o,o2,g,lp}}}
+function stopDrive(){if(!drive)return;drive=null;$('stage').classList.remove('driving');if(engine){const n=ac.currentTime;engine.g.gain.linearRampToValueAtTime(0,n+.4);engine.o.stop(n+.5);engine.o2.stop(n+.5);engine=null}
+  const v=campObj.van;S.vanPark={x:+v.position.x.toFixed(2),z:+v.position.z.toFixed(2),ry:+v.rotation.y.toFixed(3)};save();toast('주차했어요. 여기서 쉬어 가요',2000);drvOn=true;driverMenu()}
+function vanBlocked(v){const fw=new THREE.Vector3(1,0,0).applyQuaternion(v.quaternion),sd=new THREE.Vector3(0,0,1).applyQuaternion(v.quaternion),c=new THREE.Vector3().copy(v.userData.ti.position).applyQuaternion(v.quaternion).add(v.position);
+  for(const[a,b] of [[3.4,0],[3.4,1.3],[3.4,-1.3],[-3.4,0],[-3.4,1.3],[-3.4,-1.3],[0,1.4],[0,-1.4]]){const x=c.x+fw.x*a+sd.x*b,z=c.z+fw.z*a+sd.z*b;if(Math.hypot(x,z)>92||Math.abs(z-zs(x))<8.6||Math.hypot(x,z)<2.4||Math.hypot(x-PK.x,z-PK.z)<11)return true;for(const t of trees){if(Math.abs(t.x-x)<1.2&&Math.abs(t.z-z)<1.2&&Math.hypot(t.x-x,t.z-z)<.6*t.s)return true}}return false}
+function placeVanY(){const v=campObj.van,ti=v.userData.ti;v.position.y=0;v.updateMatrixWorld(true);const c=ti.getWorldPosition(new THREE.Vector3());ti.position.y=GH(c.x,c.z)+.05;VRc=null}
+function updDrive(dt){const v=campObj.van;const up=(keys.ArrowUp||keys.KeyW)?1:0,dn=(keys.ArrowDown||keys.KeyS)?1:0,lf=(keys.ArrowLeft||keys.KeyA)?1:0,rt=(keys.ArrowRight||keys.KeyD)?1:0;const thr=up-dn-(joy.y||0),st=rt-lf+(joy.x||0);
+  drive.sp+=thr*5*dt;drive.sp*=1-(thr?0:1.2)*dt;drive.sp=Math.max(-3,Math.min(9,drive.sp));drive.st+=((-st)-drive.st)*Math.min(1,dt*4);
+  const op=v.position.clone(),or=v.rotation.y;v.rotation.y+=drive.st*drive.sp*dt*.22;const fw=new THREE.Vector3(1,0,0).applyQuaternion(v.quaternion);v.position.addScaledVector(fw,drive.sp*dt);v.updateMatrixWorld(true);
+  if(vanBlocked(v)){v.position.copy(op);v.rotation.y=or;if(Math.abs(drive.sp)>1.5){sfx('plop');toast('앗, 더 갈 수 없어요. 뒤로(▼) 빼서 방향을 바꿔 봐요',1800)}drive.sp=0}placeVanY();
+  const m=vanRoom(),q=vWp(m,2.05,-.55);player.x=q[0];player.z=q[1];player.ry=Math.atan2(m.ux,m.uz);player.lift=.2;player.follow=true;
+  const wh=campObj.van.userData.ti.children.find(o=>o.geometry&&o.geometry.type==='TorusGeometry'&&o.geometry.parameters.radius===.19);if(wh)wh.rotation.z=-drive.st*1.2;
+  if(engine){const n=ac.currentTime;engine.o.frequency.setTargetAtTime(38+Math.abs(drive.sp)*9,n,.1);engine.o2.frequency.setTargetAtTime(19+Math.abs(drive.sp)*4.5,n,.1);engine.lp.frequency.setTargetAtTime(240+Math.abs(drive.sp)*60,n,.1)}
+  return Math.abs(drive.sp)>.3}
 /* 붕어빵 */
 let bung=null;
 function fishMesh(){const g=new THREE.Group(),sh=new THREE.Shape();sh.absellipse(0,0,.085,.045,0,Math.PI*2);const tl=new THREE.Shape();tl.moveTo(-.07,0);tl.lineTo(-.13,.045);tl.lineTo(-.12,-.045);tl.lineTo(-.07,0);
@@ -801,13 +856,13 @@ function buildCamps(){
   const hg=new THREE.BufferGeometry();hg.setAttribute('position',new THREE.Float32BufferAttribute(hp,3));hg.setIndex(hi);hg.computeVertexNormals();
   {const bedM=new THREE.Mesh(hg,new THREE.MeshLambertMaterial({color:0x5c86a8,side:THREE.DoubleSide}));h.add(bedM);h.userData.bed=bedM}
   const tarp=new THREE.Mesh(new THREE.PlaneGeometry(5.4,2.6),new THREE.MeshLambertMaterial({color:0x6c7a4a,side:THREE.DoubleSide}));tarp.position.y=3;tarp.rotation.x=-Math.PI/2+.25;h.add(tarp);campObj.hammock=h;
-  const v=new THREE.Group(),vi=new THREE.Group();vi.position.z=-.3;v.add(vi);v.userData.ti=vi;const VL=3.2,VW=1.35,VH=2.4;
+  const vanCurtains=[];const v=new THREE.Group(),vi=new THREE.Group();vi.position.z=-.3;v.add(vi);v.userData.ti=vi;const VL=3.2,VW=1.35,VH=2.4;
   const ext=lam(0xf4f0e6),inn=clay('#efe2c8'),wood=clay('#b98a5a'),dark=lam(0x2b2f36),glassM=new THREE.MeshBasicMaterial({color:0x9fc4dc,transparent:true,opacity:.22,side:THREE.DoubleSide,depthWrite:false});
   const bx=(w,h,d,x,y,z,m,par=vi)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);par.add(o);return o};
   const wallZ=(z,x0,x1,wins,sign)=>{const mats=sign>0?[ext,ext,ext,ext,ext,inn]:[ext,ext,ext,ext,inn,ext];const pts=[x0];wins.forEach(w=>pts.push(w[0],w[1]));pts.push(x1);
     for(let k=0;k<pts.length;k+=2){const a=pts[k],b=pts[k+1];if(b-a>.01)bx(b-a,VH-.1,.08,(a+b)/2,.05+(VH-.1)/2,z,mats)}
     wins.forEach(([a,b])=>{bx(b-a,1.05,.08,(a+b)/2,.1+.525,z,mats);bx(b-a,VH-1.85,.08,(a+b)/2,1.85+(VH-1.85)/2,z,mats);const gp=new THREE.Mesh(new THREE.PlaneGeometry(b-a,.7),glassM);gp.position.set((a+b)/2,1.5,z);vi.add(gp);
-      [a+.08,b-.08].forEach((cx,ci)=>{const cu=new THREE.Mesh(new THREE.PlaneGeometry(.22,.8),clay(ci?'#d9826a':'#e6b55c'));cu.material.side=THREE.DoubleSide;cu.position.set(cx,1.5,z-sign*.06);vi.add(cu)})})};
+      [a+.08,b-.08].forEach((cx,ci)=>{const cu=new THREE.Mesh(new THREE.PlaneGeometry(.22,.8),clay(ci?'#d9826a':'#e6b55c'));cu.material.side=THREE.DoubleSide;cu.position.set(cx,1.5,z-sign*.06);cu.userData.cx=cx;cu.userData.mid=(a+b)/2;vi.add(cu);vanCurtains.push(cu)})})};
   wallZ(-VW,-VL,VL,[[-2.6,-1.8],[-.2,1.2],[1.9,2.9]],-1);
   wallZ(VW,-VL,-.2,[[-2.6,-1.8]],1);wallZ(VW,1.2,VL,[[1.9,2.9]],1);bx(1.4,.3,.08,.5,VH-.15,VW,[ext,ext,ext,ext,ext,inn]);
   [[-VL,1],[VL,-1]].forEach(([x,sg])=>{const mats=sg>0?[inn,ext,ext,ext,ext,ext]:[ext,inn,ext,ext,ext,ext];if(sg>0){bx(.08,VH-.1,.75,x,.05+(VH-.1)/2,-VW+.375,mats);bx(.08,VH-.1,.75,x,.05+(VH-.1)/2,VW-.375,mats);bx(.08,1.05,1.2,x,.625,0,mats);bx(.08,.55,1.2,x,2.12,0,mats);const g2=new THREE.Mesh(new THREE.PlaneGeometry(1.2,.7),glassM);g2.rotation.y=Math.PI/2;g2.position.set(x,1.5,0);vi.add(g2)}
@@ -816,7 +871,7 @@ function buildCamps(){
   const vfl=new THREE.Mesh(new THREE.PlaneGeometry(VL*2,VW*2),new THREE.MeshLambertMaterial({color:0x9c7650}));vfl.rotation.x=-Math.PI/2;vfl.position.y=.07;vi.add(vfl);
   [-1,1].forEach(sd=>{bx(VL*2+.06,.16,.02,0,.95,sd*(VW+.05),lam(0x3f7fbf));bx(VL*2+.06,.06,.02,0,.78,sd*(VW+.05),lam(0xf2a65a))});
   [[-2.2,1],[-2.2,-1],[2.1,1],[2.1,-1]].forEach(([x,sd])=>{const w=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,.3,16),dark);w.rotation.x=Math.PI/2;w.position.set(x,.42,sd*(VW+.12));vi.add(w);const hc=new THREE.Mesh(new THREE.CircleGeometry(.2,14),lam(0xcfd3d8));hc.position.set(x,.42,sd*(VW+.28));if(sd<0)hc.rotation.y=Math.PI;vi.add(hc)});
-  const door=bx(1.4,VH-.2,.06,-.9,VH/2,VW+.12,ext);bx(.25,.05,.03,-.4,1.2,VW+.16,dark);bx(1.2,.12,.5,.5,.12,VW+.3,lam(0x8a8f96));
+  const door=bx(1.4,VH-.2,.06,-.9,VH/2,VW+.12,ext);v.userData.door=door;v.userData.curtains=vanCurtains;bx(.25,.05,.03,-.4,1.2,VW+.16,dark);bx(1.2,.12,.5,.5,.12,VW+.3,lam(0x8a8f96));
   const awn=new THREE.Mesh(new THREE.PlaneGeometry(3,1.5),new THREE.MeshLambertMaterial({color:0xd9a35b,side:THREE.DoubleSide}));awn.position.set(.4,2.35,VW+.75);awn.rotation.x=-Math.PI/2+.25;vi.add(awn);
   [-1,1].forEach(sd=>{const hl=new THREE.Mesh(new THREE.CircleGeometry(.14,14),new THREE.MeshBasicMaterial({color:0xfff3c4}));hl.rotation.y=Math.PI/2;hl.position.set(VL+.05,.75,sd*.95);vi.add(hl);const tl2=new THREE.Mesh(new THREE.PlaneGeometry(.18,.3),new THREE.MeshBasicMaterial({color:0xd8443a}));tl2.rotation.y=-Math.PI/2;tl2.position.set(-VL-.05,.9,sd*1.05);vi.add(tl2);bx(.06,.18,.12,VL-.2,1.75,sd*(VW+.12),dark)});
   bx(.16,.25,VW*2+.1,VL+.08,.35,0,lam(0x8a8f96));bx(.16,.25,VW*2+.1,-VL-.08,.35,0,lam(0x8a8f96));
@@ -835,13 +890,18 @@ function buildCamps(){
   /* 부엌 */
   bx(1.7,.85,.6,.45,.5,-VW+.34,wood);bx(1.74,.05,.64,.45,.95,-VW+.34,clay('#f6f1e6'));bx(.45,.03,.35,.0,.98,-VW+.36,lam(0x7c8790));
   [.6,.95].forEach(x=>{const br=new THREE.Mesh(new THREE.TorusGeometry(.09,.015,6,16),dark);br.rotation.x=Math.PI/2;br.position.set(x,.99,-VW+.36);vi.add(br)});
-  const ket=new THREE.Mesh(new THREE.SphereGeometry(.1,12,8),lam(0xd9534f));ket.scale.y=.9;ket.position.set(.95,1.08,-VW+.36);vi.add(ket);const sp=new THREE.Mesh(new THREE.CylinderGeometry(.015,.02,.12,6),lam(0xd9534f));sp.rotation.z=1;sp.position.set(1.06,1.1,-VW+.36);vi.add(sp);
+  const ket=new THREE.Mesh(new THREE.SphereGeometry(.1,12,8),lam(0xd9534f));v.userData.ket=ket;ket.scale.y=.9;ket.position.set(.95,1.08,-VW+.36);vi.add(ket);const sp=new THREE.Mesh(new THREE.CylinderGeometry(.015,.02,.12,6),lam(0xd9534f));sp.rotation.z=1;sp.position.set(1.06,1.1,-VW+.36);vi.add(sp);
   [[.25,'#fff1d8'],[.35,'#a7d3c4']].forEach(([x,c])=>{const mg=new THREE.Mesh(new THREE.CylinderGeometry(.045,.04,.1,10),clay(c));mg.position.set(x,1.02,-VW+.2);vi.add(mg)});
   const pot=new THREE.Mesh(new THREE.CylinderGeometry(.08,.06,.12,10),clay('#c06a42'));pot.position.set(1.2,1.03,-VW+.2);vi.add(pot);const leaf=new THREE.Mesh(new THREE.SphereGeometry(.12,10,8),clay('#5d9b54'));leaf.position.set(1.2,1.17,-VW+.2);vi.add(leaf);
-  bx(1.6,.5,.35,.45,2.1,-VW+.22,wood);
+  bx(1.6,.5,.06,.45,2.1,-VW+.07,wood);bx(1.6,.04,.35,.45,1.87,-VW+.22,wood);{const cds=[];[[-.35,-1],[1.25,1]].forEach(([hx,sd])=>{const pv=new THREE.Group();pv.position.set(hx,2.1,-VW+.4);vi.add(pv);const dr=new THREE.Mesh(new THREE.BoxGeometry(.8,.48,.04),clay('#c99a68'));dr.position.x=-sd*.4;pv.add(dr);const kn=new THREE.Mesh(new THREE.SphereGeometry(.025,8,6),dark);kn.position.set(-sd*.72,0,.03);pv.add(kn);pv.userData.sd=sd;cds.push(pv)});v.userData.cab=cds;
+    [['#f2d16b',.1],['#8fc7a8',.4],['#e88f7a',.75]].forEach(([c,x])=>{const jar=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,.18,10),clay(c));jar.position.set(x,2.0,-VW+.2);vi.add(jar)})}
+  {const fp=new THREE.Group();fp.position.set(1.3,.5,-VW+.65);vi.add(fp);const fd=new THREE.Mesh(new THREE.BoxGeometry(.5,.72,.04),clay('#e8eef2'));fd.position.x=-.25;fp.add(fd);const fh=new THREE.Mesh(new THREE.BoxGeometry(.03,.3,.03),dark);fh.position.set(-.45,0,.04);fp.add(fh);v.userData.fridge=fp;
+    const fl=new THREE.Mesh(new THREE.PlaneGeometry(.44,.6),new THREE.MeshBasicMaterial({color:0xf4fbff}));fl.position.set(1.05,.5,-VW+.6);fl.visible=false;vi.add(fl);v.userData.fridgeL=fl;[['#ff9f9f',.92],['#ffd36b',1.08],['#9fd6ff',1.18]].forEach(([c,x])=>{const b=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,.16,8),clay(c));b.position.set(x,.42,-VW+.55);b.visible=false;vi.add(b);(v.userData.fItems=v.userData.fItems||[]).push(b)})}
+  {const wtr=new THREE.Mesh(new THREE.CylinderGeometry(.015,.02,.22,6),new THREE.MeshBasicMaterial({color:0xbfe6ff,transparent:true,opacity:.7}));wtr.position.set(0,1.1,-VW+.3);wtr.visible=false;vi.add(wtr);v.userData.water=wtr;const tap2=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,.2,6),lam(0xcfd3d8));tap2.position.set(0,1.18,-VW+.22);tap2.rotation.x=1.2;vi.add(tap2)
+    const fl2=new THREE.Sprite(new THREE.SpriteMaterial({map:softTex,color:0x6aa8ff,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:0}));fl2.position.set(.95,1.0,-VW+.36);fl2.scale.set(.35,.2,1);vi.add(fl2);v.userData.flame=fl2}
   /* 벤치·테이블 */
   bx(1.0,.45,.5,-1.1,.27,-VW+.3,wood);bx(1.0,.1,.5,-1.1,.55,-VW+.3,clay('#5c8aa8'));bx(.7,.05,.5,-1.1,.78,-.45,wood);const tleg=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.7,6),dark);tleg.position.set(-1.1,.42,-.45);vi.add(tleg);
-  const book=bx(.22,.04,.16,-1.2,.82,-.45,clay('#7b5ea7'));book.rotation.y=.3;
+  const book=bx(.22,.04,.16,-1.2,.82,-.45,clay('#7b5ea7'));book.rotation.y=.3;v.userData.book=book;
   /* 짐칸 */
   bx(1.3,.6,.5,-.95,.35,VW-.3,wood);bx(1.32,.04,.52,-.95,.66,VW-.3,clay('#8a6440'));const cargoG=new THREE.Group();cargoG.position.set(-.95,.68,VW-.3);vi.add(cargoG);v.userData.cargoG=cargoG;
   /* 침대 */
@@ -1138,7 +1198,7 @@ function updateEnv(dt,ck){
   waterU.uSky.value.copy(tmpB);waterU.uTop.value.copy(tmpA);if(day>.05){waterU.uGl.value.copy(sunDir);waterU.uGlC.value.copy(skyU.uSunCol.value);waterU.uGlA.value=skyU.uSun.value}else{waterU.uGl.value.copy(mdir);waterU.uGlC.value.set('#dfe6ff');waterU.uGlA.value=moon.material.opacity*.6}waterU.uL.value=.25+.75*day;waterU.uRain.value=env.rain;
   clouds.forEach(c=>{c.position.x+=dt*c.userData.v*(1+wind*2);if(c.position.x>260)c.position.x=-260;c.material.opacity=.12+cl*.8;c.material.color.copy(gray).lerp(C('#ffffff'),day*(1-cl*.4)).lerp(C('#f2a37a'),tw*.4)});
   const base=({clear:.35,cloudy:.5,rain:.75,monsoon:.85,storm:1.7,snow:.55}[ck.wx]||.4)+(ck.season===3?.12:0);wind=base*(.55+.55*(.5+.5*Math.sin(T*.21)*Math.sin(T*.57+1)));grassU.uWind.value=wind;
-  flash=Math.max(0,flash-dt*3);hemi.intensity=.8+flash*2.2;bulbs.forEach(b=>b.material.color.set(night>.3?'#ffd08a':'#9a8a70'));[campObj.tent,campObj.glamp,campObj.van].forEach(o=>{if(o)o.userData.light.intensity=o.visible?.12+.3*night:0});if(vanWin)vanWin.color.set(night>.3?'#ffc779':'#2a3440');lantern.intensity=night*1.1;
+  flash=Math.max(0,flash-dt*3);hemi.intensity=.8+flash*2.2;bulbs.forEach(b=>b.material.color.set(night>.3?'#ffd08a':'#9a8a70'));[campObj.tent,campObj.glamp,campObj.van].forEach(o=>{if(o)o.userData.light.intensity=o.visible&&!o.userData.off?.12+.3*night+(o.userData.boost||0):0});if(vanWin)vanWin.color.set(night>.3?'#ffc779':'#2a3440');lantern.intensity=night*1.1;
 }
 
 /* ---------- 실제 별자리 (전주 기준 위치·현재 시각으로 계산) ---------- */
@@ -1195,7 +1255,7 @@ function updCLabels(){if(!cMode)return;const r=cv.getBoundingClientRect(),v=new 
 /* ---------- 카메라 ---------- */
 let viewMode='third';const camO={yaw:0,pitch:.32,dist:6.5},look={yaw:0,pitch:0};const curPos=new THREE.Vector3(6,8,18),curTgt=new THREE.Vector3(0,1,0),desP=new THREE.Vector3(),desT=new THREE.Vector3();
 const PITCH={first:[-1.45,1.45],stars:[.12,1.52],stream:[-.7,.9]};
-const headY=()=>WH(player.x,player.z)+player.lift+(player.pose==='sit'?(ME().role==='child'?.95:1.15):(ME().role==='child'?1.25:1.6));
+const headY=()=>WH(player.x,player.z)+player.lift+(player.pose==='sit'?(ME().role==='child'?.95:1.15):(ME().role==='child'?1.25:1.6))*roomSc;
 function setView(v,quiet){if(v==='stars'||v==='stream')clearTgt();if(v==='stars'&&viewMode!=='stars'){player.x=blanket.position.x+.6;player.z=blanket.position.z;player.ry=-Math.PI/2+.3;setPose('lie');look.yaw=-.4;look.pitch=1.05;
     if(!quiet)toast(night>.5?(env.cloud>.6?'구름이 많아 별이 조금만 보여요. 하늘을 끌어서 둘러보세요':'담요에 누웠어요. 하늘을 끌어서 둘러보고 별똥별을 기다려 보세요'):'지금은 밝아서 별이 안 보여요. 시간·날씨 탭에서 \'밤\'을 골라 보세요',4500)}
   if(v==='stream'&&viewMode!=='stream'){const x=Math.min(60,Math.max(-60,player.x));player.x=x;player.z=zs(x)+8.6;player.ry=Math.PI;setPose('sit');look.yaw=0;look.pitch=-.25;if(!quiet)toast('시냇가에 앉았어요. 물소리가 가까워져요')}
@@ -1203,9 +1263,9 @@ function setView(v,quiet){if(v==='stars'||v==='stream')clearTgt();if(v==='stars'
   if(v==='third'&&(viewMode==='first'))camO.yaw=player.ry+Math.PI;
   if((v==='third'||v==='first')&&player.pose!=='walk'&&(viewMode==='stars'||viewMode==='stream'))setPose('walk');
   viewMode=v;['Third','First','Stars','Stream'].forEach(n=>$('v'+n).setAttribute('aria-pressed',v===n.toLowerCase()))}
-function camUpdate(dt){if(sled.on&&viewMode==='first'){sledCam(dt);return}{const fv=viewMode==='stars'&&cZoom?24:55;if(Math.abs(cam.fov-fv)>.05){cam.fov+=(fv-cam.fov)*Math.min(1,dt*3);cam.updateProjectionMatrix()}}if(cMode&&viewMode!=='stars')setCMode(false);player.g.visible=viewMode!=='first'&&viewMode!=='stars'&&viewMode!=='stream';
+function camUpdate(dt){if(sled.on&&viewMode==='first'){sledCam(dt);return}if(drive&&viewMode==='third'){const v=campObj.van,fw=new THREE.Vector3(1,0,0).applyQuaternion(v.quaternion),c=v.userData.ti.getWorldPosition(new THREE.Vector3());desT.set(c.x+fw.x*2,c.y+1.6,c.z+fw.z*2);desP.set(c.x-fw.x*11,c.y+5.2,c.z-fw.z*11);desP.y=Math.max(desP.y,GH(desP.x,desP.z)+1);const k=1-Math.exp(-dt*3);curPos.lerp(desP,k);curTgt.lerp(desT,k);cam.position.copy(curPos);cam.lookAt(curTgt);sky.position.copy(cam.position);player.g.visible=true;return}{const fv=viewMode==='stars'&&cZoom?24:55;if(Math.abs(cam.fov-fv)>.05){cam.fov+=(fv-cam.fov)*Math.min(1,dt*3);cam.updateProjectionMatrix()}}if(cMode&&viewMode!=='stars')setCMode(false);player.g.visible=viewMode!=='first'&&viewMode!=='stars'&&viewMode!=='stream';
   if(viewMode==='third'&&player.moving&&player.follow&&performance.now()-lastDrag>900){let d=(player.ry+Math.PI)-camO.yaw;d=Math.atan2(Math.sin(d),Math.cos(d));camO.yaw+=d*Math.min(1,dt*2.4);camO.pitch+=(Math.min(Math.max(camO.pitch,.15),.5)-camO.pitch)*Math.min(1,dt*1.5)}
-  if(viewMode==='third'){desT.set(player.x,WH(player.x,player.z)+player.lift+1.3,player.z);desP.set(Math.sin(camO.yaw)*Math.cos(camO.pitch),Math.sin(camO.pitch),Math.cos(camO.yaw)*Math.cos(camO.pitch)).multiplyScalar(camO.dist).add(desT);desP.y=Math.max(desP.y,GH(desP.x,desP.z)+.6);{const m=roomAt();if(m){const base=m.rect?GH(m.cx,m.cz):GH(m.x,m.z),ok=(px,pz,py)=>{if(m.rect){const[u,w]=vL(m,px,pz);return Math.abs(u)<m.L-.25&&Math.abs(w)<m.W-.25&&py<base+2.15}const r=rD(m,px,pz)/m.R;return r<.88&&py<base+m.h(r)-.35};for(let k=1;k>.15;k-=.06){const px=desT.x+(desP.x-desT.x)*k,pz=desT.z+(desP.z-desT.z)*k,py=desT.y+(desP.y-desT.y)*k;if(ok(px,pz,py)){desP.set(px,py,pz);break}if(k<.2)desP.set(px,Math.min(py,base+1.9),pz)}}}}
+  if(viewMode==='third'){desT.set(player.x,WH(player.x,player.z)+player.lift+1.3*roomSc,player.z);desP.set(Math.sin(camO.yaw)*Math.cos(camO.pitch),Math.sin(camO.pitch),Math.cos(camO.yaw)*Math.cos(camO.pitch)).multiplyScalar(camO.dist).add(desT);desP.y=Math.max(desP.y,GH(desP.x,desP.z)+.6);{const m=roomAt();if(m){const base=m.rect?GH(m.cx,m.cz):GH(m.x,m.z),ok=(px,pz,py)=>{if(m.rect){const[u,w]=vL(m,px,pz);return Math.abs(u)<m.L-.25&&Math.abs(w)<m.W-.25&&py<base+2.15}const r=rD(m,px,pz)/m.R;return r<.88&&py<base+m.h(r)-.35};for(let k=1;k>.15;k-=.06){const px=desT.x+(desP.x-desT.x)*k,pz=desT.z+(desP.z-desT.z)*k,py=desT.y+(desP.y-desT.y)*k;if(ok(px,pz,py)){desP.set(px,py,pz);break}if(k<.2)desP.set(px,Math.min(py,base+1.9),pz)}}}}
   else{const y=viewMode==='stars'?WH(player.x,player.z)+player.lift+.45:viewMode==='stream'?WH(player.x,player.z)+1.15:headY();desP.set(player.x,y,player.z);
     desT.set(Math.sin(look.yaw)*Math.cos(look.pitch),Math.sin(look.pitch),-Math.cos(look.yaw)*Math.cos(look.pitch)).multiplyScalar(10).add(desP)}
   const k=viewMode==='first'?1-Math.exp(-dt*14):1-Math.exp(-dt*5);curPos.lerp(desP,k);curTgt.lerp(desT,viewMode==='first'?1:k);cam.position.copy(curPos);cam.lookAt(curTgt);sky.position.copy(cam.position)}
@@ -1236,7 +1296,7 @@ function propMenu(P){const nm=PROPN[P.k].replace('(이어 붙이기)',''),o=[];i
   if(!worldO){o.push(['옮기기',()=>startCarry(P)]);o.push(['치우기',()=>{S.props=S.props.filter(q=>q!==P);save();buildProps();toast(nm+'을(를) 치웠어요',1800)}])}o.push(['닫기',null]);ask(`${nm} · ${PDESC[P.k]||''}`,o,true)}
 let hamLie=false;let drvOn=false,drvPrev='third',radioOn=false;
 function horn(){if(!ac||!soundOn)return;const n=ac.currentTime,lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1600;lp.connect(master);[[0,.32],[.42,.2]].forEach(([d,len])=>[392,494].forEach(f=>{const o=ac.createOscillator(),g=ac.createGain();o.type='square';o.frequency.value=f;g.gain.setValueAtTime(0,n+d);g.gain.linearRampToValueAtTime(.09,n+d+.02);g.gain.setValueAtTime(.09,n+d+len);g.gain.linearRampToValueAtTime(0,n+d+len+.05);o.connect(g);g.connect(lp);o.start(n+d);o.stop(n+d+len+.1)}))}
-function driverMenu(){ask('운전석에 앉았어요. 두 손으로 핸들을 잡아요',[['빵빵 경적',()=>{horn();driverMenu()}],[radioOn?'라디오 끄기':'라디오 켜기',()=>{radioOn=!radioOn;toast(radioOn?'라디오에서 잔잔한 노래가 흘러나와요':'라디오를 껐어요',1800);driverMenu()}],['내리기',()=>{drvOn=false;setPose('walk');setView(drvPrev,1)}]],true)}
+function driverMenu(){ask('운전석에 앉았어요. 두 손으로 핸들을 잡아요',[['운전하기',startDrive],['빵빵 경적',()=>{horn();driverMenu()}],[radioOn?'라디오 끄기':'라디오 켜기',()=>{radioOn=!radioOn;toast(radioOn?'라디오에서 잔잔한 노래가 흘러나와요':'라디오를 껐어요',1800);driverMenu()}],['내리기',()=>{drvOn=false;setPose('walk');setView(drvPrev,1)}]],true)}
 function renderCargo(){const cg=campObj.van.userData.cargoG;while(cg.children.length)cg.remove(cg.children[0]);(S.cargo||[]).forEach((c,i)=>{const m=propMesh({k:c.k,x:0,z:0,ry:0});m.scale.setScalar(.24);m.position.set(-.48+(i%4)*.32,0,i<4?-.1:.12);m.rotation.y=i*.7;m.traverse(o=>{o.userData.prop=undefined;o.userData.tap='cargo'});cg.add(m)})}
 function cargoMenu(){if(!S.cargo||!S.cargo.length){toast('짐칸이 비어 있어요. 캠핑용품을 들고 와서 실어 보세요',2800);return}const o=S.cargo.slice(0,4).map((c,i)=>[PROPN[c.k].replace('(이어 붙이기)','')+' 꺼내기',()=>unloadCargo(i)]);o.push(['닫기',null]);ask(`짐칸에 실린 짐 ${S.cargo.length}개`,o,true)}
 function unloadCargo(i){if(worldO){toast('함께 캠핑 중에는 방장만 짐을 꺼낼 수 있어요');return}const c=S.cargo.splice(i,1)[0];const P={id:S.nid++,k:c.k,x:player.x,z:player.z,ry:player.ry+Math.PI};S.props.push(P);save();buildProps();renderCargo();startCarry(P)}
@@ -1248,7 +1308,7 @@ function startCarry(P){clearTgt();if(player.pose!=='walk')setPose('walk');carry=
 function putCarry(){const P=carry.P;if(Math.abs(P.z-zs(P.x))<7.4){toast('물 위에는 놓을 수 없어요. 조금 떨어져서 놓아 주세요');startCarry2();return}P.x=+P.x.toFixed(2);P.z=+P.z.toFixed(2);P.ry=+P.ry.toFixed(3);carry=null;save();buildProps();sfx('plop');toast('여기에 내려놓았어요',1500)}
 function startCarry2(){const c=carry;ask('조금 더 걸어가서 놓아 주세요',[...carryOpts(),['취소',()=>{Object.assign(c.P,{x:c.ox,z:c.oz,ry:c.ory});carry=null;buildProps()}]],true)}
 function updHam(){const H=campObj.hammock;if(!H)return;const b=H.userData.bed;if(hamLie&&(player.pose!=='lie'||S.camp!=='hammock'))hamLie=false;const sw=Math.sin(T*1.1)*(hamLie?.07:.025);if(b)b.position.z=sw;if(hamLie){const az=new THREE.Vector3(0,0,1).applyQuaternion(H.quaternion);player.g.position.x+=az.x*sw;player.g.position.z+=az.z*sw}}
-function updCarry(){updHam();if(drvOn&&player.pose!=='sit'){drvOn=false;$('choice').hidden=true;if(viewMode==='first'&&drvPrev!=='first')setView(drvPrev,1)}if(!carry)return;const P=carry.P;P.x=player.x+Math.sin(player.ry)*carry.d;P.z=player.z+Math.cos(player.ry)*carry.d;P.ry=player.ry+Math.PI;const m=propsG.children.find(g=>g.userData.P===P);if(m){m.position.set(P.x,WH(P.x,P.z)+.15,P.z);m.rotation.y=P.ry}}
+function updCarry(){updHam();if(drvOn&&player.pose!=='sit'&&!drive){drvOn=false;$('choice').hidden=true;if(viewMode==='first'&&drvPrev!=='first')setView(drvPrev,1)}if(!carry)return;const P=carry.P;P.x=player.x+Math.sin(player.ry)*carry.d;P.z=player.z+Math.cos(player.ry)*carry.d;P.ry=player.ry+Math.PI;const m=propsG.children.find(g=>g.userData.P===P);if(m){m.position.set(P.x,WH(P.x,P.z)+.15,P.z);m.rotation.y=P.ry}}
 
 function startSled(again){if(sled.on||fly.on)return;clearTgt();$('choice').hidden=true;const L=launchSpot();
   const go=()=>{player.x=L.x;player.z=L.z;player.ry=L.a;if(!again)sledPrev=viewMode==='first'?'first':'third';setPose('sit');player.sit.children[0].visible=false;player.lift=.07;
@@ -1308,7 +1368,7 @@ const rD=(m,x,z)=>Math.hypot(x-m.x,z-m.z),rSA=(m,x,z)=>{const vx=x-m.x,vz=z-m.z;
 const rIn=(m,x,z)=>{if(m.rect){const[u,w]=vL(m,x,z);return Math.abs(u)<m.L&&Math.abs(w)<m.W}return rD(m,x,z)<m.R*.97};
 const roomAt=(x=player.x,z=player.z)=>rooms().find(m=>rIn(m,x,z))||null;
 const inTent=(x=player.x,z=player.z)=>{const m=roomAt(x,z);return !!(m&&m.main&&!m.rect)};
-function tentWall(ox,oz,nx,nz){for(const m of rooms()){if(m.rect){if(Math.hypot(nx-m.cx,nz-m.cz)>m.L+2)continue;for(const[a1,b1,a2,b2]of m.segs){const sx=a2-a1,sz=b2-b1,L2=sx*sx+sz*sz,u=Math.max(0,Math.min(1,((nx-a1)*sx+(nz-b1)*sz)/L2)),qx=a1+sx*u,qz=b1+sz*u,d=Math.hypot(nx-qx,nz-qz);if(d<.3){const k=.3/(d||1);nx=qx+(nx-qx)*k;nz=qz+(nz-qz)*k}}continue}
+function tentWall(ox,oz,nx,nz){for(const m of rooms()){if(m.rect){if(Math.hypot(nx-m.cx,nz-m.cz)>m.L+2)continue;const SG=campObj.van.userData.doorClosed?[...m.segs,[...vWp(m,m.d0,m.W),...vWp(m,m.d1,m.W)]]:m.segs;for(const[a1,b1,a2,b2]of SG){const sx=a2-a1,sz=b2-b1,L2=sx*sx+sz*sz,u=Math.max(0,Math.min(1,((nx-a1)*sx+(nz-b1)*sz)/L2)),qx=a1+sx*u,qz=b1+sz*u,d=Math.hypot(nx-qx,nz-qz);if(d<.3){const k=.3/(d||1);nx=qx+(nx-qx)*k;nz=qz+(nz-qz)*k}}continue}
   const Rw=m.R*.97,dn=rD(m,nx,nz);if(rAng(m,nx,nz)<m.pass||Math.abs(dn-Rw)>.6)continue;const lim=rD(m,ox,oz)<Rw?Rw-.35:Rw+.35;if((lim<Rw&&dn>lim)||(lim>Rw&&dn<lim)){const k=lim/(dn||1);nx=m.x+(nx-m.x)*k;nz=m.z+(nz-m.z)*k}}return[nx,nz]}
 function vRoute(m,px,pz,inside,toIn){const[lu,lv]=vL(m,px,pz),um=(m.d0+m.d1)/2,inDoor=lu>m.d0+.3&&lu<m.d1-.3;
   if(inside){if(lv>m.W-.9&&inDoor)return vWp(m,um,m.W+1.2);return vWp(m,um,m.W-.6)}
@@ -1371,8 +1431,8 @@ function clearTgt(){tgt=null;mark.visible=false}
 function goTo(x,z,o={}){const r=Math.hypot(x,z);if(r>95){x*=95/r;z*=95/r}tgt={x,z,t:0,...o};mark.position.set(x,WH(x,z)+.06,z);mark.visible=!o.act;if(player.pose!=='walk'){setPose('walk');if(viewMode==='stars'||viewMode==='stream')setView('third',1)}}
 function arrive(a){curAct=a;doAct()}
 function animWalk(sp=0){const g=player.stand;if(!g||player.pose!=='walk')return;const a=Math.sin(player.walk)*Math.min(.7,sp*.14);g.userData.legs.forEach((l,i)=>l.rotation.x=i?a:-a);g.userData.arms.forEach((l,i)=>l.rotation.x=i?-a*.8:a*.8)}
-const ACTS={fairy:'요정과 이야기',fire:'모닥불 쬐기',blanket:'담요에 눕기',stream:'물가에 앉기',tentin:'텐트 안으로 들어가기',tent:{tent:'침낭에 눕기',glamp:'이불에 눕기',hammock:'해먹에 눕기',van:'침대에 눕기'},climb:'빛의 계단 오르기',treelie:'소원나무 아래 눕기',driver:'운전석에 앉기',vancargo:'짐칸 열기',stand:'일어나기'};let curAct=null;
-function nearAct(){if(climb&&climb.ph!=='top')return null;if(player.pose!=='walk')return'stand';if(climb)return null;const p={x:player.x,z:player.z},d=(x,z)=>Math.hypot(p.x-x,p.z-z);{const P=PROPS().find(P=>(P.k==='chair'||P.k==='mat')&&d(P.x,P.z)<1.5);if(P)return'prop:'+P.id}
+const ACTS={fairy:'요정과 이야기',fire:'모닥불 쬐기',blanket:'담요에 눕기',stream:'물가에 앉기',tentin:'텐트 안으로 들어가기',tent:{tent:'침낭에 눕기',glamp:'이불에 눕기',hammock:'해먹에 눕기',van:'침대에 눕기'},park:'주차하기',climb:'빛의 계단 오르기',treelie:'소원나무 아래 눕기',driver:'운전석에 앉기',vancargo:'짐칸 열기',stand:'일어나기'};let curAct=null;
+function nearAct(){if(drive)return'park';if(climb&&climb.ph!=='top')return null;if(player.pose!=='walk')return'stand';if(climb)return null;const p={x:player.x,z:player.z},d=(x,z)=>Math.hypot(p.x-x,p.z-z);{const P=PROPS().find(P=>(P.k==='chair'||P.k==='mat')&&d(P.x,P.z)<1.5);if(P)return'prop:'+P.id}
   if(d(FAIRY.x,FAIRY.z)<5.5)return'fairy';{const b=stairBase();if(d(b[0],b[2])<3)return'climb'}if(d(PK.x,PK.z)<7.5)return'treelie';if(d(0,0)<3.6)return'fire';if(d(blanket.position.x,blanket.position.z)<2.4)return'blanket';{const m=roomAt();if(m&&m.P)return'ptent:'+m.P.id;if(m&&m.van){const[lu,lv]=vL(m,p.x,p.z);if(lu>1.5)return'driver';if(lu<-1.5)return'tent';if(lu<-.2&&lv>.2)return'vancargo';return null}}if(tentOn()){if(inTent())return'tent';if(d(TCX+TDX*(TRAD+.6),TCZ+TDZ*(TRAD+.6))<2.6)return'tentin'}else if(S.camp==='van'){const q=vWp(vanRoom(),.5,1.35+1);if(d(q[0],q[1])<2.4)return'tentin'}else if(d(campPos.x,campPos.z)<4.2)return'tent';if(Math.abs(p.z-zs(p.x))<11)return'stream';return null}
 function doAct(){const a=curAct;if(!a)return;clearTgt();
   if(a.startsWith('prop:')){const P=PROPS().find(q=>'prop:'+q.id===a);if(!P)return;player.x=P.x;player.z=P.z;player.ry=P.ry;if(P.k==='chair'){setPose('sit');player.sit.children[0].visible=false;player.lift=.02;toast('캠핑 의자에 앉았어요. 바람 소리가 좋아요')}else{setPose('lie');player.ry=P.ry+Math.PI/2;toast('돗자리에 누웠어요');}return}
@@ -1387,6 +1447,7 @@ function doAct(){const a=curAct;if(!a)return;clearTgt();
   if(a==='tent'&&S.camp==='van'&&roomAt()){const m=vanRoom(),q=vWp(m,-2.4,.6);player.x=q[0];player.z=q[1];player.ry=Math.atan2(m.vx,m.vz);setPose('lie');player.lift=.72;toast('캠핑카 침대에 누웠어요. 곰인형이 옆에 있어요',3000);return}
   if(a==='driver'){const m=vanRoom(),q=vWp(m,2.05,-.55);player.x=q[0];player.z=q[1];player.ry=Math.atan2(m.ux,m.uz);setPose('sit');player.sit.children[0].visible=false;player.lift=.2;drvPrev=viewMode==='first'?'first':'third';setView('first',1);look.yaw=Math.PI-player.ry;look.pitch=-.08;drvOn=true;driverMenu();return}
   if(a==='vancargo'){cargoMenu();return}
+  if(a==='park'){stopDrive();return}
   if(a==='treelie'){lieHere();return}
   if(a==='climb'){startClimb();return}
   if(a==='tent'&&tentOn()){const px=-TDZ,pz=TDX,side=((player.x-TCX)*px+(player.z-TCZ)*pz)>=0?1:-1;player.x=TCX+px*.75*side+TDX*.25;player.z=TCZ+pz*.75*side+TDZ*.25;player.ry=Math.atan2(TDX,TDZ);setPose('lie');player.lift=.3;toast('침낭 속에 쏙 들어가 누웠어요. 텐트 천장이 포근해요',3000);return}
@@ -1628,7 +1689,7 @@ else{$('mpNew').onclick=()=>{const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let c='';
 /* ---------- 매 프레임 ---------- */
 let posT=3,T=0,last=performance.now(),fireAmt=S.fire?1:0,hudT=0;const fp=flame.geometry.attributes,FP=fp.position.array,FC=fp.aC.array,FS=fp.aS.array;
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;const ck=clock();ck0=ck;
-  const moving=sled.on?updSled(dt):climb?updClimb(dt):(boatR&&boatR.ph!=='walk')?false:movePlayer(dt);if(!climb)updClimb(dt);updFly(dt,moving);{const nearTop=Math.hypot(player.x-PK.x,player.z-PK.z)<24;$('pFly').hidden=!(glowDay(ck)&&glowAmt>.3&&!fly.on&&!sled.on)}player.g.position.set(player.x,WH(player.x,player.z)+player.lift,player.z);player.g.rotation.y=player.ry;
+  const moving=drive?updDrive(dt):sled.on?updSled(dt):climb?updClimb(dt):(boatR&&boatR.ph!=='walk')?false:movePlayer(dt);if(!climb)updClimb(dt);updFly(dt,moving);{const nearTop=Math.hypot(player.x-PK.x,player.z-PK.z)<24;$('pFly').hidden=!(glowDay(ck)&&glowAmt>.3&&!fly.on&&!sled.on)}player.g.position.set(player.x,WH(player.x,player.z)+player.lift,player.z);player.g.rotation.y=player.ry;
   netAnim+=((S.netOut?1:0)-netAnim)*Math.min(1,dt*7);heldNet.scale.setScalar(Math.max(.001,netAnim));heldNet.visible=netAnim>.02&&player.pose==='walk'&&!wishHold&&!boatR&&!bung;player.moving=moving;
   updWishHold(dt,moving);updBoatRitual(dt);updCarry();
   if(player.stand){const A=player.stand.userData.arms[0];if(swing.on){swing.t+=dt;const t=swing.t,e=x=>x*x*(3-2*x);let r;
