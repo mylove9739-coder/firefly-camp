@@ -527,11 +527,11 @@ function buildCamps(){
   Object.values(campObj).forEach(o=>{o.position.copy(campPos);o.lookAt(0,0,0);o.traverse(m=>{m.userData.tap='camp';if(m.isMesh&&!m.material.isMeshBasicMaterial){m.castShadow=true;m.receiveShadow=true}});scene.add(o)});
 }
 buildCamps();
-function setCamp(k){S.camp=k;curAct=undefined;Object.entries(campObj).forEach(([n,o])=>o.visible=n===k);const lp={tent:[1.6,1.6,1.2],glamp:[0,1.9,2.6],hammock:[2.4,2.6,0],van:[-.4,2.5,1.4]}[k];
+function setCamp(k,noSave){if(!noSave)S.camp=k;curAct=undefined;Object.entries(campObj).forEach(([n,o])=>o.visible=n===k);const lp={tent:[1.6,1.6,1.2],glamp:[0,1.9,2.6],hammock:[2.4,2.6,0],van:[-.4,2.5,1.4]}[k];
   lantern.position.copy(campObj[k].localToWorld(new THREE.Vector3(...lp)));document.querySelectorAll('#camps button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k));save()}
 
 /* 캠핑 소품 (원하는 곳에 놓기) */
-const propsG=new THREE.Group();scene.add(propsG);if(!S.props)S.props=[];const propFx=[];
+const propsG=new THREE.Group();scene.add(propsG);if(!S.props)S.props=[];const propFx=[];let worldO=null,sharedCamp=false;const PROPS=()=>worldO?worldO.props:S.props;
 const PROPN={tarp:'천막(이어 붙이기)',chair:'의자',table:'테이블',lantern:'랜턴',mat:'돗자리',tent:'작은 텐트',fire:'작은 모닥불'};
 const matTex=spriteTex((g,n)=>{g.fillStyle='#e9d9a8';g.fillRect(0,0,n,n);g.fillStyle='rgba(90,140,170,.55)';for(let i=0;i<n;i+=12){g.fillRect(i,0,4,n);g.fillRect(0,i,n,4)}});
 function propMesh(P){const g=new THREE.Group(),W=c=>lam(c),add=(geo,m,x,y,z,r)=>{const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);if(r)o.rotation.set(...r);g.add(o);return o};
@@ -548,8 +548,8 @@ function propMesh(P){const g=new THREE.Group(),W=c=>lam(c),add=(geo,m,x,y,z,r)=>
     const fl=new THREE.Sprite(new THREE.SpriteMaterial({map:softTex,color:0xff9a3a,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));fl.position.y=.45;fl.scale.set(.7,1.1,1);g.add(fl);
     const gl=new THREE.Sprite(new THREE.SpriteMaterial({map:softTex,color:0xff8a40,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:0}));gl.position.y=.5;gl.scale.set(3.2,3.2,1);g.add(gl);propFx.push({k:'fire',fl,gl,ph:Math.random()*6})}
   g.position.set(P.x,WH(P.x,P.z),P.z);g.rotation.y=P.ry;g.traverse(o=>{o.userData.prop=P;if(o.isMesh&&!o.material.isMeshBasicMaterial){o.castShadow=true}});return g}
-function buildProps(){while(propsG.children.length)propsG.remove(propsG.children[0]);propFx.length=0;S.props.forEach(P=>propsG.add(propMesh(P)))}
-function placeProp(k){if(S.props.length>=30){toast('소품은 30개까지 놓을 수 있어요');return}const d=k==='tent'||k==='tarp'?3:k==='mat'?2:1.6;let x=player.x+Math.sin(player.ry)*d,z=player.z+Math.cos(player.ry)*d,ry=player.ry+Math.PI;
+function buildProps(){while(propsG.children.length)propsG.remove(propsG.children[0]);propFx.length=0;PROPS().forEach(P=>propsG.add(propMesh(P)))}
+function placeProp(k){if(worldO){toast('함께 캠핑 중에는 방장만 소품을 놓을 수 있어요');return}if(S.props.length>=30){toast('소품은 30개까지 놓을 수 있어요');return}const d=k==='tent'||k==='tarp'?3:k==='mat'?2:1.6;let x=player.x+Math.sin(player.ry)*d,z=player.z+Math.cos(player.ry)*d,ry=player.ry+Math.PI;
   if(k==='tarp'){const tarps=S.props.filter(P=>P.k==='tarp');let best=null,bd=4.6;tarps.forEach(P=>{const dd=Math.hypot(P.x-x,P.z-z);if(dd<bd){bd=dd;best=P}});
     if(best){const c=Math.cos(-best.ry),sn=Math.sin(-best.ry),lx=(x-best.x)*c+(z-best.z)*sn,lz=-(x-best.x)*sn+(z-best.z)*c;let ox=0,oz=0;if(Math.abs(lx)>Math.abs(lz))ox=Math.sign(lx)*2.7;else oz=Math.sign(lz)*2.7;
       const c2=Math.cos(best.ry),s2=Math.sin(best.ry);x=best.x+ox*c2+oz*s2;z=best.z-ox*s2+oz*c2;ry=best.ry;if(tarps.some(P=>Math.hypot(P.x-x,P.z-z)<.5)){toast('그 자리에는 이미 천막이 있어요. 다른 쪽을 바라보고 놓아 보세요');return}
@@ -561,7 +561,7 @@ const campSign=new THREE.Group();{const p2=new THREE.Mesh(new THREE.CylinderGeom
 const csCanvas=document.createElement('canvas');csCanvas.width=512;csCanvas.height=160;const csTex=new THREE.CanvasTexture(csCanvas);
 const csBoard=new THREE.Mesh(new THREE.BoxGeometry(1.6,.5,.07),[clay('#9c7048'),clay('#9c7048'),clay('#9c7048'),clay('#9c7048'),new THREE.MeshLambertMaterial({map:csTex}),new THREE.MeshLambertMaterial({map:csTex})]);csBoard.position.y=1.45;campSign.add(csBoard);
 campSign.position.set(campPos.x+3.2,GH(campPos.x+3.2,campPos.z+2.4),campPos.z+2.4);campSign.lookAt(3,campSign.position.y,6);campSign.traverse(o=>{o.userData.tap='campsign';if(o.isMesh)o.castShadow=true});scene.add(campSign);
-function drawCampName(){const g2=csCanvas.getContext('2d'),n=S.campName||'';g2.fillStyle='#c99a62';g2.fillRect(0,0,512,160);g2.strokeStyle='#7a5634';g2.lineWidth=10;g2.strokeRect(5,5,502,150);
+function drawCampName(){const g2=csCanvas.getContext('2d'),n=(worldO?worldO.name:S.campName)||'';g2.fillStyle='#c99a62';g2.fillRect(0,0,512,160);g2.strokeStyle='#7a5634';g2.lineWidth=10;g2.strokeRect(5,5,502,150);
   g2.fillStyle='#4a2f1a';g2.textAlign='center';g2.textBaseline='middle';let fs=64;g2.font=`${fs}px Jua, "Apple SD Gothic Neo", sans-serif`;while(g2.measureText(n).width>460&&fs>28){fs-=4;g2.font=`${fs}px Jua, "Apple SD Gothic Neo", sans-serif`}g2.fillText(n,256,84);csTex.needsUpdate=true;campSign.visible=!!n}
 drawCampName();if(document.fonts)document.fonts.ready.then(drawCampName);
 
@@ -738,10 +738,10 @@ function releaseJar(){if(!S.jar)return;const jp=jarPos();let n=S.jar;for(const f
   S.jar=0;S.jarHung=false;jarChanged();toast('반딧불이를 모두 풀어 줬어요. 반짝반짝 날아가요')}
 function toggleHang(){if(!S.jarHung&&!S.jar){toast('먼저 반딧불이를 잡아 유리병에 담아 주세요');return}S.jarHung=!S.jarHung;jarChanged();toast(S.jarHung?'반딧불이 유리병을 텐트 램프 자리에 걸었어요':'유리병을 다시 손에 들었어요. 길을 밝혀 줘요')}
 function setPose(po){player.pose=po;player.lift=0;if(player.sit)player.sit.children[0].visible=true;player.stand.visible=po==='walk'||po==='lie';player.sit.visible=po==='sit';player.stand.rotation.x=po==='lie'?-Math.PI/2:0;player.stand.position.set(0,po==='lie'?.2:0,po==='lie'?-.9:0)}
-function buildFamily(){while(fam.children.length)fam.remove(fam.children[0]);const npc=S.people.filter(p=>p.id!==S.me),n=npc.length;buildPlayer();
+function buildFamily(){while(fam.children.length)fam.remove(fam.children[0]);const npc=sharedCamp?[]:S.people.filter(p=>p.id!==S.me),n=npc.length;buildPlayer();
   npc.forEach((p,i)=>{const a=n===1?-Math.PI/2:-Math.PI*.95+Math.PI*1.4*i/Math.max(1,n-1)*(n>4?1.2:1);const r=3.2,g=person(coatOf(p));g.position.set(Math.cos(a)*r,0,Math.sin(a)*r);g.lookAt(0,0,0);g.traverse(o=>o.userData.ref=p);fam.add(g)});
   const pa=[-.15,Math.PI+.15,.45,Math.PI-.45,.8,Math.PI-.8,1.1,Math.PI-1.1];
-  S.pets.forEach((p,i)=>{const a=pa[i%8],r=2.6+Math.floor(i/8)*.8,g=pet(p);g.position.set(Math.cos(a)*r,0,Math.sin(a)*r);g.lookAt(0,0,0);g.traverse(o=>o.userData.ref=p);
+  (worldO?worldO.pets:S.pets).forEach((p,i)=>{const a=pa[i%8],r=2.6+Math.floor(i/8)*.8,g=pet(p);g.position.set(Math.cos(a)*r,0,Math.sin(a)*r);g.lookAt(0,0,0);g.traverse(o=>o.userData.ref=p);
     if(p.mode==='follow'){g.position.set(player.x-1-i*.6,0,player.z+1.2)}g.userData.pet={p,i,home:g.position.clone(),hry:g.rotation.y,tx:g.position.x,tz:g.position.z,wait:0,hop:0};fam.add(g)})}
 buildFamily();
 
@@ -874,7 +874,7 @@ addEventListener('keyup',e=>{keys[e.code]=0});addEventListener('blur',()=>{for(c
 let runOn=false;$('runBtn').onclick=()=>{runOn=!runOn;$('runBtn').setAttribute('aria-pressed',runOn)};
 document.querySelectorAll('#dpad [data-k]').forEach(b=>{const k=b.dataset.k,on=e=>{e.preventDefault();b.setPointerCapture?.(e.pointerId);keys[k]=1;b.classList.add('on')},off=()=>{keys[k]=0;b.classList.remove('on')};
   b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('lostpointercapture',off);b.addEventListener('contextmenu',e=>e.preventDefault())});
-const obst=()=>[...S.props.filter(P=>P.k!=='mat'&&P.k!=='tarp'&&Math.abs(P.x-player.x)<5&&Math.abs(P.z-player.z)<5&&!(player.pose!=='walk')).map(P=>({x:P.x,z:P.z,r:{chair:.35,table:.55,lantern:.2,tent:1.5,fire:.7}[P.k]})),{x:0,z:0,r:1.5},{x:PK.x,z:PK.z,r:3},{x:campPos.x,z:campPos.z,r:S.camp==='van'?3:S.camp==='glamp'?2.8:S.camp==='hammock'?.6:2.2},...trees.filter(t=>Math.abs(t.x-player.x)<4&&Math.abs(t.z-player.z)<4).map(t=>({x:t.x,z:t.z,r:.5*t.s}))];
+const obst=()=>[...PROPS().filter(P=>P.k!=='mat'&&P.k!=='tarp'&&Math.abs(P.x-player.x)<5&&Math.abs(P.z-player.z)<5&&!(player.pose!=='walk')).map(P=>({x:P.x,z:P.z,r:{chair:.35,table:.55,lantern:.2,tent:1.5,fire:.7}[P.k]})),{x:0,z:0,r:1.5},{x:PK.x,z:PK.z,r:3},{x:campPos.x,z:campPos.z,r:S.camp==='van'?3:S.camp==='glamp'?2.8:S.camp==='hammock'?.6:2.2},...trees.filter(t=>Math.abs(t.x-player.x)<4&&Math.abs(t.z-player.z)<4).map(t=>({x:t.x,z:t.z,r:.5*t.s}))];
 function movePlayer(dt){let ix=joy.x+((keys.KeyD||keys.ArrowRight)?1:0)-((keys.KeyA||keys.ArrowLeft)?1:0),iz=joy.y+((keys.KeyS||keys.ArrowDown)?1:0)-((keys.KeyW||keys.ArrowUp)?1:0);
   const l=Math.hypot(ix,iz);let dx,dz,sp;
   player.follow=!!tgt||(iz<-.5&&Math.abs(ix)<.6);
@@ -896,10 +896,10 @@ function goTo(x,z,o={}){const r=Math.hypot(x,z);if(r>95){x*=95/r;z*=95/r}tgt={x,
 function arrive(a){curAct=a;doAct()}
 function animWalk(sp=0){const g=player.stand;if(!g||player.pose!=='walk')return;const a=Math.sin(player.walk)*Math.min(.7,sp*.14);g.userData.legs.forEach((l,i)=>l.rotation.x=i?a:-a);g.userData.arms.forEach((l,i)=>l.rotation.x=i?-a*.8:a*.8)}
 const ACTS={fairy:'요정과 이야기',fire:'모닥불 쬐기',blanket:'담요에 눕기',stream:'물가에 앉기',tent:{tent:'텐트에서 쉬기',glamp:'벨텐트에서 쉬기',hammock:'해먹에 눕기',van:'캠핑카에서 쉬기'},stand:'일어나기'};let curAct=null;
-function nearAct(){if(player.pose!=='walk')return'stand';const p={x:player.x,z:player.z},d=(x,z)=>Math.hypot(p.x-x,p.z-z);{const P=S.props.find(P=>(P.k==='chair'||P.k==='mat')&&d(P.x,P.z)<1.5);if(P)return'prop:'+P.id}
+function nearAct(){if(player.pose!=='walk')return'stand';const p={x:player.x,z:player.z},d=(x,z)=>Math.hypot(p.x-x,p.z-z);{const P=PROPS().find(P=>(P.k==='chair'||P.k==='mat')&&d(P.x,P.z)<1.5);if(P)return'prop:'+P.id}
   if(d(FAIRY.x,FAIRY.z)<5.5)return'fairy';if(d(0,0)<3.6)return'fire';if(d(blanket.position.x,blanket.position.z)<2.4)return'blanket';if(d(campPos.x,campPos.z)<4.2)return'tent';if(Math.abs(p.z-zs(p.x))<6.5)return'stream';return null}
 function doAct(){const a=curAct;if(!a)return;clearTgt();
-  if(a.startsWith('prop:')){const P=S.props.find(q=>'prop:'+q.id===a);if(!P)return;player.x=P.x;player.z=P.z;player.ry=P.ry;if(P.k==='chair'){setPose('sit');player.sit.children[0].visible=false;player.lift=.02;toast('캠핑 의자에 앉았어요. 바람 소리가 좋아요')}else{setPose('lie');player.ry=P.ry+Math.PI/2;toast('돗자리에 누웠어요');}return}
+  if(a.startsWith('prop:')){const P=PROPS().find(q=>'prop:'+q.id===a);if(!P)return;player.x=P.x;player.z=P.z;player.ry=P.ry;if(P.k==='chair'){setPose('sit');player.sit.children[0].visible=false;player.lift=.02;toast('캠핑 의자에 앉았어요. 바람 소리가 좋아요')}else{setPose('lie');player.ry=P.ry+Math.PI/2;toast('돗자리에 누웠어요');}return}
   if(a==='stand'){setPose('walk');if(viewMode==='stars'||viewMode==='stream')setView('third',1);return}
   if(a==='fire'){player.ry=Math.atan2(-player.x,-player.z);const r=Math.hypot(player.x,player.z);player.x*=2.4/r;player.z*=2.4/r;setPose('sit');toast(S.fire?'모닥불 앞에 앉았어요. 따뜻해요':'모닥불 앞에 앉았어요. 불을 피우면 더 따뜻해요');return}
   if(a==='fairy'){player.ry=Math.atan2(FAIRY.x-player.x,FAIRY.z-player.z);say({key:'fairy',pos:v=>v.copy(fairy.position).add(new THREE.Vector3(0,1.9,0))},'요정 소원이',treeRest>.5?pick(FREST):pick(FAIRY_HI));return}
@@ -992,7 +992,7 @@ function tick(){if(!soundOn||!ck0)return;const now=ac.currentTime,ts=.2,R_=Math.
   const td=Math.hypot(cam.position.x-PK.x,cam.position.z-PK.z);if(td<30&&R_()<.06){const sc=[523,587,659,784,880,1047],f=sc[R_()*6|0];chime(now+.02,f,.07*(1-td/30)*vol('birds'),R_()*1.4-.7)}
   const lw=vol('wind')*(ck0.season===3?.7:1);Lg.wind.gain.setTargetAtTime(lw*wind*1.1,now,ts);windCh.forEach(g=>g.gain.setTargetAtTime(.25+R_()*.9,now,.03));
   Lg.windLow.gain.setTargetAtTime(lw*Math.max(0,wind-.25)*3,now,.4);
-  const underT=S.props.some(P=>{if(P.k!=='tarp')return false;const c=Math.cos(-P.ry),sn=Math.sin(-P.ry),dx=player.x-P.x,dz=player.z-P.z;return Math.abs(dx*c+dz*sn)<1.4&&Math.abs(-dx*sn+dz*c)<1.4});
+  const underT=PROPS().some(P=>{if(P.k!=='tarp')return false;const c=Math.cos(-P.ry),sn=Math.sin(-P.ry),dx=player.x-P.x,dz=player.z-P.z;return Math.abs(dx*c+dz*sn)<1.4&&Math.abs(-dx*sn+dz*c)<1.4});
   Lg.rain.gain.setTargetAtTime(vol('rain')*env.rain*(underT?.7:1.1),now,.5);if(underT&&env.rain>.1)for(let i=0;i<5;i++)if(R_()<env.rain)burst(Lg.rain,now+R_()*.08,700+R_()*900,2.2,2.6*vol('rain'),.6+R_()*.3,R_()*1.2-.6,.05);if(env.rain>.1){for(let i=0;i<6;i++)if(R_()<env.rain)burst(Lg.rain,now+R_()*.08,2200+R_()*5000,2.5,2.2,.7+R_(),R_()*2-1);
     if(R_()<env.rain*.5)burst(Lg.rain,now+R_()*.08,350+R_()*250,3,3,.5,R_()*1.2-.6,.08)}
   Lg.birds.gain.setTargetAtTime(vol('birds'),now,ts);Lg.bugs.gain.setTargetAtTime(vol('bugs'),now,ts);const dry=1-env.rain;
@@ -1070,15 +1070,21 @@ function syncPeers(peers){const seen=new Set();for(const p of peers){if(p.sameTa
   let hp=null;if(!isHost())for(const p of peers){if(!p.sameTab&&p.presence&&p.presence.hs===1&&p.presence.env){hp=p;break}}
   if(hp){const e=hp.presence.env,one=(v,l,d)=>l.includes(v)?v:d;const nE={t:one(e.t,['live','morning','noon','dusk','night'],'live'),s:one(e.s,['live','0','1','2','3'],'live'),w:one(e.w,['auto','clear','cloudy','rain','snow'],'auto'),g:e.g===1?1:0};
     const ch=JSON.stringify(nE)!==JSON.stringify(envO);envO=nE;const nm=okS(hp.presence.n,12)||'방장';if(!hostName||ch){if(!hostName)toast(`방장 ${nm}님이 정한 캠핑장 분위기를 따라요`,3500)}hostName=nm;if((e.f===1)!==!!S.fire){S.fire=e.f===1;$('bFire').textContent=S.fire?'모닥불 끄기':'모닥불 피우기'}hudT=0}
-  else if(envO){envO=null;if(hostName)toast('방장이 나갔어요. 내 분위기 설정으로 돌아왔어요',3500);hostName='';hudT=0}
+  if(hp&&hp.presence.world&&typeof hp.presence.world==='object'){const w=hp.presence.world,num=v=>Math.max(-100,Math.min(100,+v||0));
+    const nw={c:['tent','glamp','hammock','van'].includes(w.c)?w.c:'tent',name:okS(w.n,14),props:(Array.isArray(w.p)?w.p:[]).slice(0,30).filter(a=>Array.isArray(a)&&PROPN[a[0]]).map((a,i)=>({k:a[0],x:num(a[1]),z:num(a[2]),ry:+a[3]||0,id:'h'+(parseInt(a[4])||i)})),
+      pets:(Array.isArray(w.pt)?w.pt:[]).slice(0,8).filter(a=>Array.isArray(a)&&['dog','cat','rabbit'].includes(a[0])).map((a,i)=>({kind:a[0],color:okC(a[1]),name:okS(a[2],8)||'친구',mode:['rest','follow','walk'].includes(a[3])&&a[3]!=='follow'?a[3]:'rest',id:'hp'+i}))};
+    if(JSON.stringify(nw)!==JSON.stringify(worldO)){worldO=nw;buildProps();setCamp(nw.c,true);drawCampName();buildFamily()}}
+  else if(worldO&&!hp){worldO=null;buildProps();setCamp(S.camp,true);drawCampName();buildFamily()}
+  {const sh=remotes.size>0;if(sh!==sharedCamp){sharedCamp=sh;buildFamily()}}
+  if(!hp&&envO){envO=null;if(hostName)toast('방장이 나갔어요. 내 분위기 설정으로 돌아왔어요',3500);hostName='';hudT=0}
   hostUI();mpStatus();$('hudPeers').hidden=!remotes.size||!inClaude;$('hudPeers').textContent=`함께 캠핑 중 ${remotes.size+1}명${isHost()?' · 내가 방장':hostName?' · 방장 '+hostName:''}`}
 function isHost(){return !!(sbAd&&S.code&&S.hostOf===S.code)}
 function hostUI(){const guest=!!envO;$('hostNote').hidden=!(guest||isHost());$('hostNote').textContent=guest?`방장 ${hostName}님이 캠핑장 분위기(시간·계절·날씨·빛나는 들판·모닥불)를 정하고 있어요. 함께하는 동안은 방장 설정을 따라요.`:'내가 방장이에요. 여기서 바꾼 시간·계절·날씨·빛나는 들판·모닥불이 함께 있는 가족 모두에게 똑같이 적용돼요.';
-  document.querySelectorAll('#segTime button,#segSeason button,#segWx button,#bLive,#bGlow,#bFire').forEach(b=>b.disabled=guest)}
+  document.querySelectorAll('#segTime button,#segSeason button,#segWx button,#bLive,#bGlow,#bFire,#camps button,#propBtns button,#bCampNm').forEach(b=>b.disabled=guest)}
 function updRemotes(dt){const k=Math.min(1,dt*8);remotes.forEach(r=>{const gp=r.g.position;gp.x=lerp(gp.x,r.tx,k);gp.z=lerp(gp.z,r.tz,k);gp.y=WH(gp.x,gp.z)+r.lift;let d=r.tr-r.g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));r.g.rotation.y+=d*k;
   if(r.inner.userData.legs){r.ph+=r.walking?dt*8:0;const a=r.walking?Math.sin(r.ph)*.6:0;r.inner.userData.legs.forEach((l,i)=>l.rotation.x=i?a:-a);r.inner.userData.arms.forEach((l,i)=>l.rotation.x=i?-a*.8:a*.8)}})}
 function sendPresence(dt,moving){if(!room)return;presT-=dt;if(presT>0)return;presT=presGap;const m=ME(),r2=v=>Math.round(v*100)/100;
-  const o={n:m.name,c:m.role,sk:m.skin,ha:m.hair,st:m.style,o:m.outfit,cu:{g:m.gender,f:m.face,e:m.eyes,b:m.brow,m:m.mouth,d:m.dress?1:0,bt:m.bottom,sh:m.shoes,h:m.hat,gl:m.glasses,or:m.orn,ac:m.acc},x:r2(player.x),z:r2(player.z),r:r2(player.ry),po:player.pose,l:player.lift,w:moving?1:0};if(isHost())Object.assign(o,{hs:1,env:{t:S.time,s:S.season,w:S.wx,g:S.glowPrev?1:0,f:S.fire?1:0}});const s=JSON.stringify(o);if(s!==lastPres){lastPres=s;room.presence(o).catch(()=>{})}}
+  const o={n:m.name,c:m.role,sk:m.skin,ha:m.hair,st:m.style,o:m.outfit,cu:{g:m.gender,f:m.face,e:m.eyes,b:m.brow,m:m.mouth,d:m.dress?1:0,bt:m.bottom,sh:m.shoes,h:m.hat,gl:m.glasses,or:m.orn,ac:m.acc},x:r2(player.x),z:r2(player.z),r:r2(player.ry),po:player.pose,l:player.lift,w:moving?1:0};if(isHost())Object.assign(o,{hs:1,env:{t:S.time,s:S.season,w:S.wx,g:S.glowPrev?1:0,f:S.fire?1:0},world:{c:S.camp,n:S.campName||'',p:S.props.slice(-30).map(P=>[P.k,P.x,P.z,P.ry,P.id]),pt:S.pets.slice(0,8).map(q=>[q.kind,q.color,q.name,q.mode||'rest'])}});const s=JSON.stringify(o);if(s!==lastPres){lastPres=s;room.presence(o).catch(()=>{})}}
 function wireRoom(room){
   room.onPeers(ch=>syncPeers(ch.peers),()=>{});
   room.on('wish',m=>{if(m.sameTab)return;const d=m.data||{};if(d.k==='share'){const t=okS(d.t,60),n=okS(d.n,12)||'가족';if(t){logChat(`${n}님의 소원`,t);toast(`${n}님이 소원을 나눠 줬어요`)}return}const x=Math.max(-100,Math.min(100,+d.x||0)),z=Math.max(-100,Math.min(100,+d.z||0));if(d.k==='boat')spawnBoat(x,1);else spawnLantern(x,z,1)},()=>{});
@@ -1105,7 +1111,7 @@ function mpStatus(){const c=$('hudNet');if(!c)return;if(!sbAd&&!inClaude){c.hidd
   c.innerHTML='';const d=document.createElement('b');d.style.cssText=`display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px;background:${on?'#7be08a':'#ff7a6b'}`;c.append(d,document.createTextNode(on?`캠핑장 ${S.code} · ${remotes.size+1}명`:`캠핑장 ${S.code} · 다시 연결 중`))}
 let rejoinT=0;function ensureCamp(){if(inClaude||!S.code||(sbAd&&sbAd.connected()))return;const now=Date.now();if(now-rejoinT<4000)return;rejoinT=now;joinCamp(S.code,true)}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){ensureCamp();lastPres=''}});setInterval(()=>{ensureCamp();lastPres='';if(room){presT=0;sendPresence(0,false)}mpStatus()},4000);
-function leaveCamp(){if(sbAd){try{sbAd.leave()}catch(e){}}sbAd=null;room=null;syncPeers([]);envO=null;hostName='';S.code='';save();$('mpOn').hidden=true;$('mpState').textContent='혼자 캠핑 중이에요';try{history.replaceState(null,'',location.pathname)}catch(e){}}
+function leaveCamp(){if(sbAd){try{sbAd.leave()}catch(e){}}sbAd=null;room=null;syncPeers([]);envO=null;hostName='';hostUI();S.code='';save();$('mpOn').hidden=true;$('mpState').textContent='혼자 캠핑 중이에요';try{history.replaceState(null,'',location.pathname)}catch(e){}}
 if(inClaude){(async()=>{try{room=await window.claude.use('room')}catch(e){room=null}if(room)wireRoom(room)})();$('mpBox').hidden=true}
 else{$('mpNew').onclick=()=>{const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let c='';for(let i=0;i<6;i++)c+=A[Math.random()*A.length|0];S.hostOf=c;save();joinCamp(c)};
   $('mpGo').onclick=()=>joinCamp($('mpIn').value);$('mpLeave').onclick=leaveCamp;
@@ -1123,7 +1129,7 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;const 
     updNet(dt,A.rotation.x)}
   {const w=S.coat!==false&&env.rain>.3;if(w!==wearCoat){wearCoat=w;buildFamily();if(w)toast('비가 와요. 모두 노란 우비를 입었어요',3500)}$('vCoat').hidden=env.rain<=.3;$('vCoat').textContent=S.coat!==false?'우비 벗기':'우비 입기'}
   camUpdate(dt);updateEnv(dt,ck);sendPresence(dt,moving);updRemotes(dt);
-  const na=nearAct();if(na!==curAct){curAct=na;$('act').hidden=!na;if(na)$('act').textContent=na.startsWith('prop:')?(S.props.find(q=>'prop:'+q.id===na)?.k==='chair'?'의자에 앉기':'돗자리에 눕기'):na==='tent'?ACTS.tent[S.camp]:ACTS[na];}{const nearFF=night>.3&&ff.some(f=>f.c<0&&f.vis>.1&&Math.abs(f.cx-player.x)<3.4&&Math.abs(f.cz-player.z)<3.4);const k2=na==='fairy'?'wish':(na==='stream'||(na==='stand'&&viewMode==='stream'))?'boat':na==='tent'&&(S.jar||S.jarHung)?'hang':nearFF?'catch':'';
+  const na=nearAct();if(na!==curAct){curAct=na;$('act').hidden=!na;if(na)$('act').textContent=na.startsWith('prop:')?(PROPS().find(q=>'prop:'+q.id===na)?.k==='chair'?'의자에 앉기':'돗자리에 눕기'):na==='tent'?ACTS.tent[S.camp]:ACTS[na];}{const nearFF=night>.3&&ff.some(f=>f.c<0&&f.vis>.1&&Math.abs(f.cx-player.x)<3.4&&Math.abs(f.cz-player.z)<3.4);const k2=na==='fairy'?'wish':(na==='stream'||(na==='stand'&&viewMode==='stream'))?'boat':na==='tent'&&(S.jar||S.jarHung)?'hang':nearFF?'catch':'';
    if(k2!==a2k){a2k=k2;$('act2').hidden=!k2;$('act2').textContent={wish:'소원 띄우기',boat:'소원배 띄우기',hang:S.jarHung?'유리병 다시 들기':'유리병 걸어두기',catch:'반딧불이 잡기'}[k2]||''}}fireAmt=lerp(fireAmt,S.fire?1:0,Math.min(1,dt*1.2));
   grassU.uT.value=waterU.uT.value=starU.uT.value=T;grassU.uFire.value=fireAmt*(.35+.65*night);
   updAnimals(dt);updGlowField(dt,ck);skyT-=dt;if(skyT<=0){skyT=5;updRealSky()}realG.position.copy(cam.position);cLineMat.opacity=cMode?.5:0;cSel.visible=cMode&&!!cPick;updCLabels();
@@ -1257,7 +1263,7 @@ function applyQuality(){const q=S.q,dp=devicePixelRatio||1;R.setPixelRatio(q==='
   scene.traverse(o=>{if(o.material)[].concat(o.material).forEach(m=>m.needsUpdate=true)});starU.uPx.value=R.getPixelRatio();[flame,ffly,drift,jarDots,treeSpark,gfGlow].forEach(pt=>pt.material.uniforms.uPx.value=R.getPixelRatio()*300);curSeason=-1;resize()}
 seg($('segQ'),[['low','가볍게'],['mid','보통'],['high','선명하게']],()=>S.q,v=>{S.q=v;applyQuality();toast({low:'가볍게: 그림자를 끄고 풀을 줄였어요. 오래된 폰에 좋아요',mid:'보통 화질로 바꿨어요',high:'선명하게: 그림자와 풀이 가장 촘촘해요'}[v])});
 setCamp(S.camp);applyQuality();$('propBtns').innerHTML=Object.entries(PROPN).map(([k,n])=>`<button data-k="${k}">${n}</button>`).join('')+'<button data-k="undo">마지막 것 치우기</button><button data-k="clear">모두 치우기</button>';
-$('propBtns').onclick=e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.k;if(k==='undo'){S.props.pop();save();buildProps();toast('마지막 소품을 치웠어요');return}if(k==='clear'){S.props=[];save();buildProps();toast('소품을 모두 치웠어요');return}placeProp(k)};
+$('propBtns').onclick=e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.k;if(worldO){toast('함께 캠핑 중에는 방장만 캠핑장을 꾸밀 수 있어요');return}if(k==='undo'){S.props.pop();save();buildProps();toast('마지막 소품을 치웠어요');return}if(k==='clear'){S.props=[];save();buildProps();toast('소품을 모두 치웠어요');return}placeProp(k)};
 $('campNm').value=S.campName||'';$('bCampNm').onclick=()=>{S.campName=$('campNm').value.trim().slice(0,14);save();drawCampName();toast(S.campName?`캠핑자리 이름을 '${S.campName}'(으)로 정했어요. 텐트 옆 표지판을 보세요`:'캠핑자리 이름을 지웠어요')};
 $('bHang').onclick=toggleHang;$('bRelease').onclick=releaseJar;jarChanged();requestAnimationFrame(frame);
 })();
