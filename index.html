@@ -702,7 +702,7 @@ function pet(p){const g=new THREE.Group(),m=clay(p.color),cream=clay(p.kind==='d
   g.scale.setScalar(1.2);g.traverse(o=>{if(o.isMesh&&!o.material.isMeshBasicMaterial)o.castShadow=true});return g}
 if(!S.me||!S.people.find(p=>p.id===S.me))S.me=S.people[0]?.id;
 const ME=()=>S.people.find(p=>p.id===S.me)||{name:'나',role:'adult',skin:SKIN[1],hair:HAIR[0],style:'short',outfit:OUTFIT[2]};
-const player={x:2.2,z:5.5,ry:Math.PI,pose:'walk',walk:0,g:new THREE.Group(),stand:null,sit:null};scene.add(player.g);
+const player={x:S.pos?Math.max(-95,Math.min(95,+S.pos[0]||2.2)):2.2,z:S.pos?Math.max(-95,Math.min(95,+S.pos[1]||5.5)):5.5,ry:S.pos?+S.pos[2]||Math.PI:Math.PI,pose:'walk',walk:0,g:new THREE.Group(),stand:null,sit:null};scene.add(player.g);
 function makeJar(){const g=new THREE.Group(),glass=new THREE.Mesh(new THREE.CylinderGeometry(.11,.1,.24,18),new THREE.MeshLambertMaterial({color:0xe6fbf4,transparent:true,opacity:.32,depthWrite:false}));
   const lid=new THREE.Mesh(new THREE.CylinderGeometry(.085,.09,.06,14),lam(0x8a6040));lid.position.y=.15;const h=new THREE.Mesh(new THREE.TorusGeometry(.08,.01,6,16,Math.PI),lam(0x777777));h.position.y=.18;g.add(glass,lid,h);return g}
 const heldJar=makeJar(),hungJar=makeJar();scene.add(hungJar);hungJar.visible=false;
@@ -732,7 +732,7 @@ function buildPlayer(){while(player.g.children.length)player.g.remove(player.g.c
   const k=p.role==='child'?.8:1;heldJar.position.set(0,-.46*k,.04);player.stand.userData.arms[1].add(heldJar);heldNet.position.set(0,-.3*k,0);heldNet.rotation.set(-1.1,0,.15);player.stand.userData.arms[0].add(heldNet);setPose(player.pose)}
 let inFlight=0,ffTip=0;if(S.jar==null)S.jar=0;
 function jarChanged(){save();$('jarN').textContent=`${S.jar} / ${JMAX}마리`;$('hudJar').hidden=!S.jar;$('hudJar').textContent=`유리병 반딧불이 ${S.jar}`;$('bHang').textContent=S.jarHung?'유리병 다시 들기':'텐트 램프 대신 걸기';$('bRelease').disabled=!S.jar}
-function catchFF(f){if(S.jar+inFlight>=JMAX){toast(`유리병이 가득 찼어요 (${JMAX}마리)`);return}if(!S.netOut){netToggle(true);toast('주머니에서 잠자리채를 꺼냈어요',1500)}if(player.pose==='walk'&&viewMode!=='first')player.ry=Math.atan2(f.cx-player.x,f.cz-player.z);swing.on=true;swing.t=0;f.c=0;f.sx=f.cx;f.sy=f.cy;f.sz=f.cz;inFlight++;sfx('catch')}
+function catchFF(f){if(S.jar+inFlight>=JMAX){toast(`유리병이 가득 찼어요 (${JMAX}마리)`);return}if(!S.netOut){toast('잠자리채가 주머니에 있어요. 먼저 꺼내 주세요',2200);return}if(player.pose==='walk'&&viewMode!=='first')player.ry=Math.atan2(f.cx-player.x,f.cz-player.z);swing.on=true;swing.t=0;f.c=0;f.sx=f.cx;f.sy=f.cy;f.sz=f.cz;inFlight++;sfx('catch')}
 function catchNear(){let best=null,bd=3.4;const py=WH(player.x,player.z)+1;ff.forEach(f=>{if(f.c>=0||f.vis<.08)return;const d=Math.hypot(f.cx-player.x,f.cy-py,f.cz-player.z);if(d<bd){bd=d;best=f}});if(best){catchFF(best);return true}return false}
 function releaseJar(){if(!S.jar)return;const jp=jarPos();let n=S.jar;for(const f of ff){if(!n)break;if(f.away>0||f.vis<.05){f.away=0;f.c=-1;f.x=jp.x+(Math.random()-.5)*3;f.z=jp.z+(Math.random()-.5)*3;f.h=.5+Math.random()*2;f.g=jp.y-.8;n--}}
   S.jar=0;S.jarHung=false;jarChanged();toast('반딧불이를 모두 풀어 줬어요. 반짝반짝 날아가요')}
@@ -869,7 +869,7 @@ cv.addEventListener('wheel',e=>{e.preventDefault();if(viewMode==='third')camO.di
 /* ---------- 이동 ---------- */
 const keys={};let joy={x:0,y:0};
 addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;if(e.key==='Enter'){e.preventDefault();$('chatIn').focus();return}
-  if(e.key==='e'||e.key==='E'||e.key==='ㄷ'){doAct();return}if(e.key==='f'||e.key==='F'||e.key==='ㄹ'){if(!catchNear()&&player.pose==='walk'){if(!S.netOut){netToggle(true);toast('잠자리채를 꺼냈어요',1200)}else{swing.on=true;swing.t=0;toast('휘익, 잠자리채를 휘둘렀어요',1200)}}return}if(e.key==='n'||e.key==='N'||e.key==='ㅜ'){netToggle();toast(S.netOut?'잠자리채를 꺼냈어요':'잠자리채를 주머니에 넣었어요',1200);return}keys[e.code]=1;if(/Arrow/.test(e.code))e.preventDefault()});
+  if(e.key==='e'||e.key==='E'||e.key==='ㄷ'){doAct();return}if(e.key==='f'||e.key==='F'||e.key==='ㄹ'){if(!catchNear()&&player.pose==='walk'){if(!S.netOut){toast('잠자리채가 주머니에 있어요. N 키로 꺼내 주세요',1800)}else{swing.on=true;swing.t=0;toast('휘익, 잠자리채를 휘둘렀어요',1200)}}return}if(e.key==='n'||e.key==='N'||e.key==='ㅜ'){netToggle();toast(S.netOut?'잠자리채를 꺼냈어요':'잠자리채를 주머니에 넣었어요',1200);return}keys[e.code]=1;if(/Arrow/.test(e.code))e.preventDefault()});
 addEventListener('keyup',e=>{keys[e.code]=0});addEventListener('blur',()=>{for(const k in keys)keys[k]=0});
 let runOn=false;$('runBtn').onclick=()=>{runOn=!runOn;$('runBtn').setAttribute('aria-pressed',runOn)};
 document.querySelectorAll('#dpad [data-k]').forEach(b=>{const k=b.dataset.k,on=e=>{e.preventDefault();b.setPointerCapture?.(e.pointerId);keys[k]=1;b.classList.add('on')},off=()=>{keys[k]=0;b.classList.remove('on')};
@@ -923,7 +923,7 @@ $('wishGo').onclick=()=>{const tx=$('wishTx').value.trim().slice(0,60);if(!tx){$
   if(wishType==='lantern'){const fx2=player.x+Math.sin(player.ry)*1.2,fz2=player.z+Math.cos(player.ry)*1.2;spawnLantern(fx2,fz2,0,glowDay(ck0||clock()));sfx('whoosh');toast('소원등에 불을 붙였어요. 소원이 하늘로 올라가요',4000);if(room&&room.connected())room.emit('wish',{k:'lantern',x:fx2,z:fz2}).catch(()=>{})}
   else{const nearS=Math.abs(player.z-zs(player.x))<9,bx=nearS?player.x:10;spawnBoat(bx,0,glowDay(ck0||clock()));sfx('plop');toast(nearS?'소원배가 시냇물을 따라 흘러가요':'소원배를 다리 아래 시냇물에 띄웠어요. 물길 따라 흘러가요',4000);if(room&&room.connected())room.emit('wish',{k:'boat',x:bx}).catch(()=>{})}
 };
-let a2k='';$('act2').onclick=()=>{if(a2k==='catch'){catchNear();return}if(a2k==='hang'){toggleHang();a2k='x';return}openWish(a2k==='boat'?'boat':'lantern')};
+let a2k='';$('act2').onclick=()=>{if(a2k==='netout'){netToggle(true);toast('주머니에서 잠자리채를 꺼냈어요',1500);a2k='x';return}if(a2k==='catch'){catchNear();return}if(a2k==='hang'){toggleHang();a2k='x';return}openWish(a2k==='boat'?'boat':'lantern')};
 $('vTree').onclick=()=>{$('wish').hidden=true;player.x=TR[TR.length-16].x;player.z=TR[TR.length-16].z;player.ry=Math.atan2(PK.x-player.x,PK.z-player.z);setPose('walk');if(viewMode!=='first')setView('third',1);camO.yaw=player.ry+Math.PI;camO.pitch=.18;camO.dist=9;toast('산꼭대기 소원나무 앞에 도착했어요. 요정에게 가까이 가 보세요',4000)};
 const ray=new THREE.Raycaster();let lastTap={t:0,x:0,y:0};const LINES={person:['불이 따뜻하다','바람 소리 좋다','별 보러 갈까?','시냇물 소리가 잔잔해','오늘 공기가 참 좋아','조금만 더 있다 자자'],dog:['멍!','(꼬리 살랑살랑)','킁킁'],cat:['냐옹','(골골골)','(꾹꾹이)'],rabbit:['(코 씰룩씰룩)','(깡총)']};
 function tap(e){const r=cv.getBoundingClientRect();{let best=null,bd=36;const pv=new THREE.Vector3();for(const f of ff){if(f.c>=0||f.vis<.08)continue;if(Math.hypot(f.cx-player.x,f.cz-player.z)>10)continue;pv.set(f.cx,f.cy,f.cz).project(cam);if(pv.z>1)continue;const d=Math.hypot((pv.x+1)/2*r.width-(e.clientX-r.left),(1-pv.y)/2*r.height-(e.clientY-r.top));if(d<bd){bd=d;best=f}}if(best){catchFF(best);return}}ray.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-(e.clientY-r.top)/r.height*2+1},cam);
@@ -1119,7 +1119,7 @@ else{$('mpNew').onclick=()=>{const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let c='';
   const hc=(location.hash.match(/^#camp-([A-Za-z0-9]{4,8})$/)||[])[1];if(hc||S.code)joinCamp(hc||S.code)}
 
 /* ---------- 매 프레임 ---------- */
-let T=0,last=performance.now(),fireAmt=S.fire?1:0,hudT=0;const fp=flame.geometry.attributes,FP=fp.position.array,FC=fp.aC.array,FS=fp.aS.array;
+let posT=3,T=0,last=performance.now(),fireAmt=S.fire?1:0,hudT=0;const fp=flame.geometry.attributes,FP=fp.position.array,FC=fp.aC.array,FS=fp.aS.array;
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;const ck=clock();ck0=ck;
   const moving=movePlayer(dt);player.g.position.set(player.x,WH(player.x,player.z)+player.lift,player.z);player.g.rotation.y=player.ry;
   netAnim+=((S.netOut?1:0)-netAnim)*Math.min(1,dt*7);heldNet.scale.setScalar(Math.max(.001,netAnim));heldNet.visible=netAnim>.02&&player.pose==='walk';player.moving=moving;
@@ -1129,8 +1129,8 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;const 
     updNet(dt,A.rotation.x)}
   {const w=S.coat!==false&&env.rain>.3;if(w!==wearCoat){wearCoat=w;buildFamily();if(w)toast('비가 와요. 모두 노란 우비를 입었어요',3500)}$('vCoat').hidden=env.rain<=.3;$('vCoat').textContent=S.coat!==false?'우비 벗기':'우비 입기'}
   camUpdate(dt);updateEnv(dt,ck);sendPresence(dt,moving);updRemotes(dt);
-  const na=nearAct();if(na!==curAct){curAct=na;$('act').hidden=!na;if(na)$('act').textContent=na.startsWith('prop:')?(PROPS().find(q=>'prop:'+q.id===na)?.k==='chair'?'의자에 앉기':'돗자리에 눕기'):na==='tent'?ACTS.tent[S.camp]:ACTS[na];}{const nearFF=night>.3&&ff.some(f=>f.c<0&&f.vis>.1&&Math.abs(f.cx-player.x)<3.4&&Math.abs(f.cz-player.z)<3.4);const k2=na==='fairy'?'wish':(na==='stream'||(na==='stand'&&viewMode==='stream'))?'boat':na==='tent'&&(S.jar||S.jarHung)?'hang':nearFF?'catch':'';
-   if(k2!==a2k){a2k=k2;$('act2').hidden=!k2;$('act2').textContent={wish:'소원 띄우기',boat:'소원배 띄우기',hang:S.jarHung?'유리병 다시 들기':'유리병 걸어두기',catch:'반딧불이 잡기'}[k2]||''}}fireAmt=lerp(fireAmt,S.fire?1:0,Math.min(1,dt*1.2));
+  const na=nearAct();if(na!==curAct){curAct=na;$('act').hidden=!na;if(na)$('act').textContent=na.startsWith('prop:')?(PROPS().find(q=>'prop:'+q.id===na)?.k==='chair'?'의자에 앉기':'돗자리에 눕기'):na==='tent'?ACTS.tent[S.camp]:ACTS[na];}{const nearFF=night>.3&&ff.some(f=>f.c<0&&f.vis>.1&&Math.abs(f.cx-player.x)<3.4&&Math.abs(f.cz-player.z)<3.4);const k2=na==='fairy'?'wish':(na==='stream'||(na==='stand'&&viewMode==='stream'))?'boat':na==='tent'&&(S.jar||S.jarHung)?'hang':nearFF?(S.netOut?'catch':'netout'):'';
+   if(k2!==a2k){a2k=k2;$('act2').hidden=!k2;$('act2').textContent={wish:'소원 띄우기',boat:'소원배 띄우기',hang:S.jarHung?'유리병 다시 들기':'유리병 걸어두기',catch:'반딧불이 잡기',netout:'잠자리채 꺼내기'}[k2]||''}}fireAmt=lerp(fireAmt,S.fire?1:0,Math.min(1,dt*1.2));
   grassU.uT.value=waterU.uT.value=starU.uT.value=T;grassU.uFire.value=fireAmt*(.35+.65*night);
   updAnimals(dt);updGlowField(dt,ck);skyT-=dt;if(skyT<=0){skyT=5;updRealSky()}realG.position.copy(cam.position);cLineMat.opacity=cMode?.5:0;cSel.visible=cMode&&!!cPick;updCLabels();
   propFx.forEach(f=>{if(f.k==='glow')f.gl.material.opacity=.15+.6*night;else{const fl=.85+.15*Math.sin(T*13+f.ph)*Math.sin(T*7+f.ph);f.fl.scale.set(.7*fl,1.1*fl,1);f.fl.material.opacity=.85;f.gl.material.opacity=(.15+.45*night)*fl}});
@@ -1183,6 +1183,7 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;const 
     shootA.set(Math.cos(a)*Math.cos(e),Math.sin(e),Math.sin(a)*Math.cos(e)).multiplyScalar(300);shootB.copy(shootA).add(new THREE.Vector3((Math.random()-.5)*160,-60-Math.random()*40,(Math.random()-.5)*160));
     if(viewMode==='stars'){S.stars++;save();setTimeout(()=>toast(`별똥별이 떨어졌어요! 소원을 빌어 보세요 (지금까지 ${S.stars}개)`),400)}}}
   if(shootT>=0){shootT+=dt/.9;const a=Math.min(1,shootT),b=Math.max(0,shootT-.25);const pa=shootA.clone().lerp(shootB,a).add(cam.position),pb=shootA.clone().lerp(shootB,b).add(cam.position);shoot.geometry.setFromPoints([pb,pa]);shoot.material.opacity=Math.sin(Math.min(1,shootT)*Math.PI)*starU.uOp.value;if(shootT>1.25){shootT=-1;shoot.material.opacity=0}}
+  posT-=dt;if(posT<=0){posT=3;S.pos=[+player.x.toFixed(2),+player.z.toFixed(2),+player.ry.toFixed(2)];save()}
   hudT-=dt;if(hudT<=0){hudT=1;const d=ck.d,days='일월화수목금토';const hh=Math.floor(ck.hour),mm=S.time==='live'?d.getMinutes():Math.round((ck.hour-hh)*60);
     $('hudDate').textContent=`${d.getMonth()+1}/${d.getDate()} (${days[d.getDay()]}) ${hh<12?'오전':'오후'} ${((hh+11)%12)+1}:${String(mm).padStart(2,'0')}${S.time==='live'?'':' 미리보기'}`;
     {const ld=lunarDay(ck.d);$('hudWx').textContent=`${SEASONS[ck.season]} · ${WX[ck.wx]} · 음력 ${ld}일${ld===1?' 초하루':ld===15?' 보름':''}`}const live=EV().t==='live'&&EV().s==='live'&&EV().w==='auto',tl=hh<5||hh>=20?'밤':hh<9?'아침':hh<17?'낮':'노을';
