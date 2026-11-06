@@ -663,7 +663,7 @@ const STR={r:9.6,turns:3,h:25.6,a0:0,top:29.6};
 function stairPos(u){u=Math.max(0,Math.min(1,u));const sp=.86;if(u<sp){const t=u/sp,a=STR.a0+t*STR.turns*Math.PI*2;return[PK.x+Math.cos(a)*STR.r,WT.y+.35+t*STR.h,PK.z+Math.sin(a)*STR.r]}
   const t=(u-sp)/(1-sp),e=t*t*(3-2*t),a=STR.a0+STR.turns*Math.PI*2,r=STR.r*(1-e);return[PK.x+Math.cos(a)*r,WT.y+.35+STR.h+(STR.top-STR.h-.35)*e,PK.z+Math.sin(a)*r]}
 const stairM=new THREE.MeshBasicMaterial({color:0xffe6a0,transparent:true,opacity:.6,depthWrite:false}),NSTEP=230,stairs=new THREE.InstancedMesh(new THREE.BoxGeometry(1.1,.1,.42),stairM,NSTEP);
-{const o=new THREE.Object3D();for(let i=0;i<NSTEP;i++){const u=i/(NSTEP-1),[x,y,z]=stairPos(u),[x2,,z2]=stairPos(u+.004);o.position.set(x,y-.06,z);o.rotation.set(0,Math.atan2(x2-x,z2-z)+Math.PI/2,0);o.updateMatrix();stairs.setMatrixAt(i,o.matrix)}}stairs.traverse(o=>o.userData.tap='stairs');scene.add(stairs);
+{const o=new THREE.Object3D();for(let i=0;i<NSTEP;i++){const u=i/(NSTEP-1),[x,y,z]=stairPos(u),[x2,,z2]=stairPos(u+.004);o.position.set(x,y-.06,z);o.rotation.set(0,Math.atan2(x2-x,z2-z)+Math.PI/2,0);o.scale.setScalar(.0001);o.updateMatrix();stairs.setMatrixAt(i,o.matrix)}}stairs.visible=false;stairs.traverse(o=>o.userData.tap='stairs');scene.add(stairs);
 const stairSpk=particles(160,THREE.AdditiveBlending),ssk=[];for(let i=0;i<160;i++)ssk.push({u:Math.random(),o:(Math.random()-.5)*1.1,h:Math.random()*.6,ph:Math.random()*6});
 const topNest=new THREE.Group();{const [x,y,z]=stairPos(1);topNest.position.set(x,y-.1,z);const disc=new THREE.Mesh(new THREE.CircleGeometry(2.3,40),new THREE.MeshBasicMaterial({color:0xfff0c0,transparent:true,opacity:.55,depthWrite:false,side:THREE.DoubleSide}));disc.rotation.x=-Math.PI/2;topNest.add(disc);
   const rim=new THREE.Mesh(new THREE.TorusGeometry(2.3,.16,10,48),new THREE.MeshBasicMaterial({color:0xffd56a}));rim.rotation.x=Math.PI/2;topNest.add(rim);[[.7,.5,'#f6c9d4'],[-.6,.7,'#cfe3ff'],[.1,-.8,'#fff3c4']].forEach(([cx,cz,c])=>{const cu=new THREE.Mesh(new THREE.SphereGeometry(.45,14,10),clay(c));cu.scale.set(1,.4,1);cu.position.set(cx,.15,cz);topNest.add(cu)});
@@ -1789,6 +1789,6 @@ $('bHang').onclick=toggleHang;$('bRelease').onclick=releaseJar;jarChanged();requ
 })();
 </script>
 
-<script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script>
+<script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{}));</script>
 </body>
 </html>
