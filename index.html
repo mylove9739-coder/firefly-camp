@@ -991,7 +991,7 @@ function catchNear(){let best=null,bd=3.4;const py=WH(player.x,player.z)+1;ff.fo
 function releaseJar(){if(!S.jar)return;const jp=jarPos();let n=S.jar;for(const f of ff){if(!n)break;if(f.away>0||f.vis<.05){f.away=0;f.c=-1;f.x=jp.x+(Math.random()-.5)*3;f.z=jp.z+(Math.random()-.5)*3;f.h=.5+Math.random()*2;f.g=jp.y-.8;n--}}
   S.jar=0;S.jarHung=false;jarChanged();toast('반딧불이를 모두 풀어 줬어요. 반짝반짝 날아가요')}
 function toggleHang(){if(!S.jarHung&&!S.jar){toast('먼저 반딧불이를 잡아 유리병에 담아 주세요');return}S.jarHung=!S.jarHung;jarChanged();toast(S.jarHung?'반딧불이 유리병을 텐트 램프 자리에 걸었어요':'유리병을 다시 손에 들었어요. 길을 밝혀 줘요')}
-function setPose(po){player.pose=po;if(!(fly&&fly.on))player.lift=0;if(player.sit)player.sit.children[0].visible=true;player.stand.visible=po==='walk'||po==='lie';player.sit.visible=po==='sit';player.stand.rotation.x=po==='lie'?-Math.PI/2:0;player.stand.position.set(0,po==='lie'?.2:0,po==='lie'?-.9:0)}
+function setPose(po){const same=po===player.pose;player.pose=po;if(!(fly&&fly.on)&&!same)player.lift=0;if(player.sit&&!same)player.sit.children[0].visible=true;player.stand.visible=po==='walk'||po==='lie';player.sit.visible=po==='sit';player.stand.rotation.x=po==='lie'?-Math.PI/2:0;player.stand.position.set(0,po==='lie'?.2:0,po==='lie'?-.9:0)}
 function buildFamily(){while(fam.children.length)fam.remove(fam.children[0]);const npc=sharedCamp?[]:S.people.filter(p=>p.id!==S.me),n=npc.length;buildPlayer();
   npc.forEach((p,i)=>{const a=n===1?-Math.PI/2:-Math.PI*.95+Math.PI*1.4*i/Math.max(1,n-1)*(n>4?1.2:1);const r=3.2,g=person(coatOf(p));g.position.set(Math.cos(a)*r,0,Math.sin(a)*r);g.lookAt(0,0,0);g.traverse(o=>o.userData.ref=p);g.userData.nm=p.name;fam.add(g)});
   const pa=[-.15,Math.PI+.15,.45,Math.PI-.45,.8,Math.PI-.8,1.1,Math.PI-1.1];
