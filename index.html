@@ -1104,7 +1104,7 @@ async function joinCamp(code,quiet){code=(code||'').toUpperCase().replace(/[^A-Z
 function mpStatus(){const c=$('hudNet');if(!c)return;if(!sbAd&&!inClaude){c.hidden=true;return}if(inClaude){c.hidden=true;return}c.hidden=false;const on=sbAd&&sbAd.connected();
   c.innerHTML='';const d=document.createElement('b');d.style.cssText=`display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px;background:${on?'#7be08a':'#ff7a6b'}`;c.append(d,document.createTextNode(on?`캠핑장 ${S.code} · ${remotes.size+1}명`:`캠핑장 ${S.code} · 다시 연결 중`))}
 let rejoinT=0;function ensureCamp(){if(inClaude||!S.code||(sbAd&&sbAd.connected()))return;const now=Date.now();if(now-rejoinT<4000)return;rejoinT=now;joinCamp(S.code,true)}
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){ensureCamp();lastPres=''}});setInterval(()=>{ensureCamp();lastPres='';mpStatus()},5000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){ensureCamp();lastPres=''}});setInterval(()=>{ensureCamp();lastPres='';if(room){presT=0;sendPresence(0,false)}mpStatus()},4000);
 function leaveCamp(){if(sbAd){try{sbAd.leave()}catch(e){}}sbAd=null;room=null;syncPeers([]);envO=null;hostName='';S.code='';save();$('mpOn').hidden=true;$('mpState').textContent='혼자 캠핑 중이에요';try{history.replaceState(null,'',location.pathname)}catch(e){}}
 if(inClaude){(async()=>{try{room=await window.claude.use('room')}catch(e){room=null}if(room)wireRoom(room)})();$('mpBox').hidden=true}
 else{$('mpNew').onclick=()=>{const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let c='';for(let i=0;i<6;i++)c+=A[Math.random()*A.length|0];S.hostOf=c;save();joinCamp(c)};
