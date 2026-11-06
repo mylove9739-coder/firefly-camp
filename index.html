@@ -170,7 +170,7 @@ h2{font-family:var(--display);font-size:16px;margin:0}
     <div class="cbar" id="cbar" hidden><span>별자리 탐색 중 · 전주 하늘 기준</span><button id="cOff">별자리 끄기</button></div>
     <div class="cinfo" id="cinfo" hidden><b id="cName"></b><p id="cDesc"></p><div class="row"><button id="cZoom">확대해서 보기</button><button id="cClose">닫기</button></div></div>
     <div class="choice" id="choice" hidden><div id="choiceT"></div><div class="cb" id="choiceB"></div></div><div class="fade" id="fade"></div>
-    <div class="pills" id="pills"><button id="pCamp">캠핑장으로</button><button id="pNet">잠자리채 꺼내기</button><button id="pFly" class="hot" hidden>하늘 날기</button></div>
+    <div class="pills" id="pills"><button id="pFly" class="hot" hidden>하늘 날기</button></div>
     <div class="chatlog" id="chatlog" aria-live="polite"></div>
     <span class="keys">땅을 눌러 이동(두 번 누르면 달리기) · 방향키 이동 · Shift 달리기 · E 행동 · F 잡기 · N 잠자리채 · Enter 대화</span>
     <div class="dpad" id="dpad" aria-label="방향키">
@@ -794,7 +794,7 @@ function makeNet(){const g=new THREE.Group(),wood=clay('#c8955e');
   const bag=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:netTex,color:0xc9d6d0,transparent:true,opacity:.85,alphaTest:.25,side:THREE.DoubleSide,depthWrite:false}));bag.position.y=cy;bag.frustumCulled=false;
   const tip=new THREE.Object3D();tip.position.set(0,cy-.05,-L*.8);g.add(h,grip,ring,bag,tip);g.userData={geo,base,R,S2,tip,trail:0,prevRot:0};return g}
 const heldNet=makeNet(),swing={on:false,t:0};let netAnim=0;if(S.netOut==null)S.netOut=false;
-function netToggle(v){S.netOut=v==null?!S.netOut:v;save();$('pNet').textContent=S.netOut?'잠자리채 넣기':'잠자리채 꺼내기';$('vNet').textContent=S.netOut?'잠자리채 주머니에 넣기':'잠자리채 꺼내기';$('vNet').setAttribute('aria-pressed',S.netOut);sfx('catch')}let ffOnG=0;const netTipW=new THREE.Vector3();
+function netToggle(v){S.netOut=v==null?!S.netOut:v;save();$('vNet').textContent=S.netOut?'잠자리채 주머니에 넣기':'잠자리채 꺼내기';$('vNet').setAttribute('aria-pressed',S.netOut);sfx('catch')}let ffOnG=0;const netTipW=new THREE.Vector3();
 function updNet(dt,rot){const U=heldNet.userData,w=(rot-U.prevRot)/Math.max(dt,.001);U.prevRot=rot;U.trail+=(Math.max(-1,Math.min(1,w*.12))-U.trail)*Math.min(1,dt*9);
   const P=U.geo.attributes.position.array,B=U.base,sp=Math.min(1,Math.abs(w)/5),walk=Math.min(1,Math.abs(Math.sin(player.walk))*.3);
   for(let j=0;j<=U.R;j++){const d=j/U.R,dd=Math.pow(d,1.5);for(let i=0;i<=U.S2;i++){const k=(j*(U.S2+1)+i)*3,fl=Math.sin(T*30+d*8+i*.9)*.022*d*(sp+walk*.4);
@@ -1354,7 +1354,6 @@ const closeMenu=()=>{$('views').hidden=true;$('menuBtn').setAttribute('aria-expa
 cv.addEventListener('pointerdown',closeMenu);$('views').addEventListener('click',e=>{if(e.target.closest('button'))closeMenu()});
 $('vThird').onclick=()=>setView('third');$('vFirst').onclick=()=>setView('first');$('vStars').onclick=()=>setView('stars');$('vStream').onclick=()=>setView('stream');
 $('vNet').onclick=()=>{netToggle();toast(S.netOut?'주머니에서 잠자리채를 꺼냈어요':'잠자리채를 주머니에 쏙 넣었어요',1500)};$('vNet').textContent=S.netOut?'잠자리채 주머니에 넣기':'잠자리채 꺼내기';$('vNet').setAttribute('aria-pressed',S.netOut);
-$('pNet').textContent=S.netOut?'잠자리채 넣기':'잠자리채 꺼내기';$('pNet').onclick=()=>{netToggle();toast(S.netOut?'주머니에서 잠자리채를 꺼냈어요':'잠자리채를 주머니에 쏙 넣었어요',1500)};$('pCamp').onclick=()=>$('vCampGo').click();
 $('pFly').onclick=()=>startFly();
 $('vCampGo').onclick=()=>{$('wish').hidden=true;clearTgt();player.x=2.2;player.z=5.5;player.ry=Math.PI;setPose('walk');if(viewMode!=='first')setView('third',1);camO.yaw=0;toast('캠프로 돌아왔어요')};
 
