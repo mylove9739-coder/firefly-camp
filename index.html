@@ -202,6 +202,11 @@ h2{font-family:var(--display);font-size:16px;margin:0}
         <p class="note">풀벌레는 여름·가을 밤에, 매미는 여름 낮에, 새소리는 낮에, 빗소리는 비 오는 날에 들려요. 동물 가까이 가면 발소리와 물 마시는 소리도 들려요. 시냇가로 가면 물소리가 더 가까워져요.</p>
       </div>
       <div class="pane" id="p-family" hidden>
+        <div class="envsum" id="mpBox"><div style="gap:6px"><span class="lbl">가족과 함께 캠핑하기</span><span class="note" id="mpState">혼자 캠핑 중이에요</span>
+          <div id="mpOn" hidden><span class="note">캠핑 코드</span> <b id="mpCode" style="font-family:var(--display);font-size:20px;letter-spacing:.08em"></b></div>
+          <span class="note" id="mpLink" hidden style="user-select:all;word-break:break-all"></span>
+          <div class="seg"><button id="mpNew" class="primary">새 캠핑장 만들기</button><button id="mpCopy">초대 링크 복사</button><button id="mpLeave">나가기</button></div>
+          <div class="seg"><input type="text" id="mpIn" maxlength="8" placeholder="초대 코드 입력" style="flex:1;min-width:0;text-transform:uppercase"><button id="mpGo">들어가기</button></div></div></div>
         <div class="seg" id="segWho"></div>
         <div class="row2" id="maker"></div>
         <div class="field"><h2 id="rosterH">우리 가족</h2><div class="roster" id="roster"></div></div>
@@ -1019,13 +1024,35 @@ function syncPeers(peers){const seen=new Set();for(const p of peers){if(p.sameTa
   $('hudPeers').hidden=!remotes.size;$('hudPeers').textContent=`함께 캠핑 중 ${remotes.size+1}명`}
 function updRemotes(dt){const k=Math.min(1,dt*8);remotes.forEach(r=>{const gp=r.g.position;gp.x=lerp(gp.x,r.tx,k);gp.z=lerp(gp.z,r.tz,k);gp.y=WH(gp.x,gp.z)+r.lift;let d=r.tr-r.g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));r.g.rotation.y+=d*k;
   if(r.inner.userData.legs){r.ph+=r.walking?dt*8:0;const a=r.walking?Math.sin(r.ph)*.6:0;r.inner.userData.legs.forEach((l,i)=>l.rotation.x=i?a:-a);r.inner.userData.arms.forEach((l,i)=>l.rotation.x=i?-a*.8:a*.8)}})}
-function sendPresence(dt,moving){if(!room)return;presT-=dt;if(presT>0)return;presT=.12;const m=ME(),r2=v=>Math.round(v*100)/100;
+function sendPresence(dt,moving){if(!room)return;presT-=dt;if(presT>0)return;presT=presGap;const m=ME(),r2=v=>Math.round(v*100)/100;
   const o={n:m.name,c:m.role,sk:m.skin,ha:m.hair,st:m.style,o:m.outfit,cu:{g:m.gender,f:m.face,e:m.eyes,b:m.brow,m:m.mouth,d:m.dress?1:0,bt:m.bottom,sh:m.shoes,h:m.hat,gl:m.glasses,or:m.orn,ac:m.acc},x:r2(player.x),z:r2(player.z),r:r2(player.ry),po:player.pose,l:player.lift,w:moving?1:0},s=JSON.stringify(o);if(s!==lastPres){lastPres=s;room.presence(o).catch(()=>{})}}
-(async()=>{try{room=await window.claude?.use?.('room')}catch(e){room=null}if(!room)return;
+function wireRoom(room){
   room.onPeers(ch=>syncPeers(ch.peers),()=>{});
   room.on('wish',m=>{if(m.sameTab)return;const d=m.data||{};if(d.k==='share'){const t=okS(d.t,60),n=okS(d.n,12)||'가족';if(t){logChat(`${n}님의 소원`,t);toast(`${n}님이 소원을 나눠 줬어요`)}return}const x=Math.max(-100,Math.min(100,+d.x||0)),z=Math.max(-100,Math.min(100,+d.z||0));if(d.k==='boat')spawnBoat(x,1);else spawnLantern(x,z,1)},()=>{});
   room.on('chat',m=>{if(m.sameTab)return;const d=m.data||{},t=okS(d.t,80);if(!t)return;const name=okS(d.n,12)||'가족',r=remotes.get(m.peer);
-    if(r)say({key:'p'+m.peer,pos:v=>v.set(r.g.position.x,r.g.position.y+(r.pose==='sit'?1.75:2.05),r.g.position.z)},name,t);else logChat(name,t)},()=>{})})();
+    if(r)say({key:'p'+m.peer,pos:v=>v.set(r.g.position.x,r.g.position.y+(r.pose==='sit'?1.75:2.05),r.g.position.z)},name,t);else logChat(name,t)},()=>{})}
+const SB_URL='https://mrvovskylnnfrblzaijc.supabase.co',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ydm92c2t5bG5uZnJibHphaWpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5NDg1NDUsImV4cCI6MjEwOTUyNDU0NX0.xwpEQJwBV_wBbyKKQFxXv0alI3xUWIqZiXfA2FAli6I';
+const inClaude=!!(window.claude&&window.claude.use);let sbClient=null,sbAd=null,presGap=.12;
+function loadScript(src){return new Promise((ok,no)=>{const sc=document.createElement('script');sc.src=src;sc.onload=ok;sc.onerror=no;document.head.appendChild(sc)})}
+async function sbRoom(code){if(!window.supabase){try{await loadScript('supabase.js')}catch(e){await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js')}}
+  if(!sbClient)sbClient=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false},realtime:{params:{eventsPerSecond:10}}});
+  const me=crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2),ch=sbClient.channel('camp-'+code,{config:{presence:{key:me},broadcast:{self:false}}}),H={},PF=[];let ok=false;
+  ['chat','wish'].forEach(t=>ch.on('broadcast',{event:t},({payload})=>(H[t]||[]).forEach(f=>f({data:payload&&payload.d,peer:payload&&payload.p,sameTab:false}))));
+  ch.on('presence',{event:'sync'},()=>{const st=ch.presenceState(),peers=Object.entries(st).map(([k,arr])=>({peer:k,presence:arr[arr.length-1],kind:'viewer',sameTab:k===me}));PF.forEach(f=>f({peers}))});
+  await new Promise(res=>{const t=setTimeout(res,10000);ch.subscribe(st=>{if(st==='SUBSCRIBED'){ok=true;clearTimeout(t);res()}else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'){clearTimeout(t);res()}})});
+  return{connected:()=>ok,on:(t,f)=>{(H[t]=H[t]||[]).push(f)},onPeers:f=>{PF.push(f)},emit:(t,d)=>ch.send({type:'broadcast',event:t,payload:{d,p:me}}).then(()=>{}),presence:o=>Promise.resolve(ch.track(o)).then(()=>{}),leave:()=>sbClient.removeChannel(ch)}}
+async function joinCamp(code){code=(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8);if(code.length<4){toast('캠핑 코드는 4글자 이상이에요');return}
+  if(sbAd){try{sbAd.leave()}catch(e){}sbAd=null;room=null;syncPeers([])}$('mpState').textContent='연결하는 중…';
+  try{sbAd=await sbRoom(code)}catch(e){sbAd=null}
+  if(!sbAd||!sbAd.connected()){$('mpState').textContent='연결하지 못했어요. 인터넷을 확인하고 다시 눌러 주세요';sbAd=null;return}
+  room=sbAd;presGap=.25;lastPres='';wireRoom(room);S.code=code;save();$('mpCode').textContent=code;$('mpState').textContent='연결됨 · 같은 코드로 들어온 가족이 함께 보여요';$('mpIn').value='';$('mpOn').hidden=false;
+  try{history.replaceState(null,'','#camp-'+code)}catch(e){}toast(`'${code}' 캠핑장에 들어왔어요. 초대 링크를 가족에게 보내 주세요`,4000)}
+function leaveCamp(){if(sbAd){try{sbAd.leave()}catch(e){}}sbAd=null;room=null;syncPeers([]);S.code='';save();$('mpOn').hidden=true;$('mpState').textContent='혼자 캠핑 중이에요';try{history.replaceState(null,'',location.pathname)}catch(e){}}
+if(inClaude){(async()=>{try{room=await window.claude.use('room')}catch(e){room=null}if(room)wireRoom(room)})();$('mpBox').hidden=true}
+else{$('mpNew').onclick=()=>{const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let c='';for(let i=0;i<6;i++)c+=A[Math.random()*A.length|0];joinCamp(c)};
+  $('mpGo').onclick=()=>joinCamp($('mpIn').value);$('mpLeave').onclick=leaveCamp;
+  $('mpCopy').onclick=async()=>{if(!S.code){toast('먼저 새 캠핑장을 만들거나 코드로 들어가 주세요');return}const url=location.origin+location.pathname+'#camp-'+S.code;try{await navigator.clipboard.writeText(url);toast('초대 링크를 복사했어요. 가족에게 보내 주세요')}catch(e){$('mpLink').textContent=url;$('mpLink').hidden=false;toast('아래 링크를 길게 눌러 복사해 주세요')}};
+  const hc=(location.hash.match(/^#camp-([A-Za-z0-9]{4,8})$/)||[])[1];if(hc||S.code)joinCamp(hc||S.code)}
 
 /* ---------- 매 프레임 ---------- */
 let T=0,last=performance.now(),fireAmt=S.fire?1:0,hudT=0;const fp=flame.geometry.attributes,FP=fp.position.array,FC=fp.aC.array,FS=fp.aS.array;

@@ -1,5 +1,5 @@
-const CACHE='firefly-camp-v2';
-const FILES=['./','index.html','three.min.js','manifest.webmanifest','icon-192.png','icon-512.png','apple-touch-icon.png'];
+const CACHE='firefly-camp-v3';
+const FILES=['./','index.html','three.min.js','manifest.webmanifest','icon-192.png','icon-512.png','apple-touch-icon.png','supabase.js'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim()});
 // 게임 화면(index.html)은 항상 최신 버전을 먼저 받아오고, 인터넷이 없을 때만 저장된 것을 써요.
