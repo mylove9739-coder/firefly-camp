@@ -526,7 +526,14 @@ const rings=[];for(let i=0;i<6;i++){const r=new THREE.Mesh(new THREE.RingGeometr
 let wStep=0,strokeT=0;
 function waterLevel(x){return GH(x,zs(x))+1.05+flood*1.36}
 function drops(x,y,z,n,pow){for(const q of wsq){if(q.t>.8&&n-->0){q.t=0;q.p.set(x+(Math.random()-.5)*.3,y,z+(Math.random()-.5)*.3);q.v.set((Math.random()-.5)*2*pow,1.5+Math.random()*2*pow,(Math.random()-.5)*2*pow)}}const R=rings.find(r=>r.t>1.2);if(R){R.t=0;R.m.position.set(x,y+.02,z);R.m.visible=true}}
-function splashSnd(big){if(!ac||!soundOn)return;const n=ac.currentTime;burst(master,n,big?500:700,.9,big?1.6:1.1,.5,0,big?.22:.14);for(let i=0;i<(big?7:4);i++)burst(master,n+.03+i*.03+Math.random()*.03,1800+Math.random()*3500,1.6,big?.7:.5,1,Math.random()*.6-.3,.04)}
+function splashSnd(big){if(!ac||!soundOn)return;const n=ac.currentTime,R_=Math.random,len=big?.55:.32;
+  /* 물을 가르는 쏴아: 노이즈를 로우패스로 높은음→낮은음 스윕 */
+  const s=ac.createBufferSource();s.buffer=noise;s.start(n,R_()*3);s.stop(n+len+.05);const lp=ac.createBiquadFilter();lp.type='lowpass';lp.Q.value=.7;lp.frequency.setValueAtTime(big?5200:4200,n);lp.frequency.exponentialRampToValueAtTime(big?500:700,n+len);
+  const hp=ac.createBiquadFilter();hp.type='highpass';hp.frequency.value=big?180:300;const g=ac.createGain(),v=(big?.9:.5)*vol('stream');g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(v,n+.025);g.gain.exponentialRampToValueAtTime(v*.35,n+len*.35);g.gain.exponentialRampToValueAtTime(.0005,n+len);
+  s.connect(hp);hp.connect(lp);lp.connect(g);g.connect(master);
+  /* 보글·똑똑 물방울: 음높이가 위로 휘는 짧은 사인 */
+  for(let i=0;i<(big?9:5);i++){const t=n+.04+R_()*len*.9,o=ac.createOscillator(),og=ac.createGain(),f=500+R_()*900;o.type='sine';o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*(1.6+R_()*.8),t+.05);const ov=(big?.14:.09)*(.4+R_()*.6)*vol('stream');og.gain.setValueAtTime(0,t);og.gain.linearRampToValueAtTime(ov,t+.004);og.gain.exponentialRampToValueAtTime(.0003,t+.06);
+    let d=og;if(ac.createStereoPanner){const pn=ac.createStereoPanner();pn.pan.value=R_()*.8-.4;og.connect(pn);d=pn}o.connect(og);d.connect(master);o.start(t);o.stop(t+.07)}}
 function updSwim(dt,moving){const P=wsp.geometry.attributes;wsq.forEach((q,i)=>{q.t+=dt;q.v.y-=8*dt;q.p.addScaledVector(q.v,dt);P.position.array.set([q.p.x,q.p.y,q.p.z],i*3);P.aC.array.set([.85,.93,1,Math.max(0,.9-q.t*1.3)],i*4);P.aS.array[i]=.1});P.position.needsUpdate=P.aC.needsUpdate=P.aS.needsUpdate=true;
   rings.forEach(r=>{if(r.t>1.2){r.m.visible=false;return}r.t+=dt;r.m.scale.setScalar(1+r.t*3);r.m.material.opacity=.7*(1-r.t/1.2)});
   const k=ME().role==='child'?.8:1,x=player.x,z=player.z,inBand=Math.abs(z-zs(x))<8+flood*8,onBridge=WH(x,z)>GH(x,z)+.25;let depth=0;
@@ -733,7 +740,7 @@ function updClimb(dt){const P=stairSpk.geometry.attributes,nt=sst(.15,.85,night)
   if(climb){const o=new THREE.Object3D(),m=new THREE.Matrix4(),dir=climb.ph==='down'?-1:1;for(let i=0;i<NSTEP;i++){const u=i/(NSTEP-1),du=(u-cu)*dir;let sc=0;if(du>-.012&&du<.035){sc=du<0?1+du/.012:du>.022?1-(du-.022)/.013:1}
     const [x,y,z]=stairPos(u),[x2,,z2]=stairPos(u+.004);o.position.set(x,y-.06-(1-sc)*.3,z);o.rotation.set(0,Math.atan2(x2-x,z2-z)+Math.PI/2,0);o.scale.setScalar(Math.max(.0001,sc));o.updateMatrix();stairs.setMatrixAt(i,o.matrix)}stairs.instanceMatrix.needsUpdate=true;
     ssk.forEach(q=>{if(Math.abs(q.u-cu)>.03)q.u=cu+(Math.random()*.045-.012)*dir})}
-  if(!climb)return false;if(climb.ph==='top'){climbLift();if(player.pose==='walk'&&$('choice').hidden){if(viewMode==='stars')setView('third',1);topMenu()}return false}
+  if(!climb)return false;if(climb.ph==='top'){const tp=stairPos(1);if(Math.hypot(player.x-tp[0],player.z-tp[2])>3||viewMode==='first'||drive||sled.on){climb=null;stairs.visible=topNest.visible=stairSpk.visible=false;if(player.lift>3)player.lift=0;return false}climbLift();if(player.pose==='walk'&&$('choice').hidden){if(viewMode==='stars')setView('third',1);topMenu()}return false}
   const L=1/190;climb.u+=(climb.ph==='up'?1:-1)*dt*2.2*L*((climb.u>.86)?.55:1);const[x,y,z]=stairPos(climb.u),[x2,,z2]=stairPos(climb.u+(climb.ph==='up'?.003:-.003));player.x=x;player.z=z;player.lift=y-WH(x,z);player.ry=Math.atan2(x2-x,z2-z);player.walk+=dt*2.2*2.6;animWalk(2.2);player.follow=true;
   if(climb.ph==='up'&&climb.u>=1){climb.u=1;climb.ph='top';sfx('hang');toast('소원나무 꼭대기에 도착했어요! 따뜻한 빛이 감싸 줘요',3200);topMenu()}
   if(climb.ph==='down'&&climb.u<=0){climb=null;player.lift=0;toast('땅에 내려왔어요',1500)}
@@ -1524,7 +1531,9 @@ function startAudio(){
   windCh=[-.7,.7].map(p=>{const g=ac.createGain();g.gain.value=.5;panTo(loop().connect(filt('highpass',2600)).connect(filt('lowpass',9000)).connect(g),p).connect(Lg.wind);return g});
   loop().connect(filt('lowpass',260)).connect(Lg.windLow);
   // 비: 좌우 빗줄기 소리
-  [-.6,.6].forEach(p=>panTo(loop().connect(filt('highpass',900)).connect(filt('lowpass',7500)),p).connect(Lg.rain));
+  {const SR=ac.sampleRate,L=SR*6,rb=ac.createBuffer(2,L,SR);for(let c=0;c<2;c++){const d=rb.getChannelData(c);for(let i=0;i<L;i++)d[i]=(Math.random()*2-1)*.22;
+      for(let k=0;k<L/SR*900;k++){const at=Math.random()*L|0,a=(.15+Math.random()*.85)**2*(Math.random()<.04?1.6:.6),dl=SR*(.002+Math.random()*.012);for(let j=0;j<dl*5;j++)d[(at+j)%L]+=(Math.random()*2-1)*a*Math.exp(-j/dl)}}
+    [-.5,.5].forEach((p,i)=>{const x=ac.createBufferSource();x.buffer=rb;x.loop=true;x.start(0,i*3);panTo(x.connect(filt('highpass',700)).connect(filt('lowpass',8000)),p).connect(Lg.rain)})}
   // 모닥불: 낮게 타오르는 소리와 쉬익
   fireHum=ac.createGain();fireHum.gain.value=.6;loop().connect(filt('lowpass',180)).connect(fireHum).connect(Lg.fire);
   const fh=ac.createGain();fh.gain.value=.08;loop().connect(filt('highpass',3500)).connect(fh).connect(Lg.fire);
