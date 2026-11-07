@@ -658,6 +658,15 @@ for(let i=0;i<NFF;i++){const f={};ffAnchor(f);ff.push(f)}
 const jarDots=particles(30,THREE.AdditiveBlending);
 let lastDM='';const ND=2200,drift=particles(ND,THREE.NormalBlending),dr=[];for(let i=0;i<ND;i++)dr.push({x:0,y:-999,z:0,p:Math.random()*9});
 const NR=1800,rainP=new Float32Array(NR*6),rainG=new THREE.BufferGeometry();rainG.setAttribute('position',new THREE.BufferAttribute(rainP,3));
+const NHL=700,hailP=new Float32Array(NHL*3),hailV=new Float32Array(NHL),hailG=new THREE.BufferGeometry();hailG.setAttribute('position',new THREE.BufferAttribute(hailP,3));
+const hail=new THREE.Points(hailG,new THREE.PointsMaterial({color:0xf4f8ff,size:.22,transparent:true,opacity:.95,fog:false}));hail.frustumCulled=false;scene.add(hail);
+function updHail(dt){const n=Math.floor(NHL*Math.min(1,env.hail));hail.visible=n>0;if(!n)return;hailG.setDrawRange(0,n);for(let i=0;i<n;i++){const o=i*3;if(hailP[o+1]===0||Math.abs(hailP[o]-cam.position.x)>22||Math.abs(hailP[o+2]-cam.position.z)>22){hailP[o]=cam.position.x+(Math.random()-.5)*40;hailP[o+2]=cam.position.z+(Math.random()-.5)*40;hailP[o+1]=cam.position.y+4+Math.random()*16;hailV[i]=-16-Math.random()*6}
+  hailV[i]-=20*dt;hailP[o+1]+=hailV[i]*dt;hailP[o]+=wind*2*dt;const g=GH(hailP[o],hailP[o+2])+.05;if(hailP[o+1]<g){if(hailV[i]<-4){hailP[o+1]=g;hailV[i]=-hailV[i]*.28}else hailP[o+1]=0}}hailG.attributes.position.needsUpdate=true}
+const rbwM=new THREE.ShaderMaterial({uniforms:{uA:{value:0}},transparent:true,depthWrite:false,fog:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+  vertexShader:`varying vec2 vP;void main(){vP=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`uniform float uA;varying vec2 vP;vec3 hsv(float h){return clamp(abs(mod(h*6.+vec3(0,4,2),6.)-3.)-1.,0.,1.);}void main(){float r=(length(vP)-.9)/.1;if(r<0.||r>1.)discard;vec3 c=hsv(.8*(1.-r)*.95);float e=smoothstep(0.,.18,r)*smoothstep(1.,.82,r);float lo=smoothstep(-.05,.35,vP.y);gl_FragColor=vec4(c*e*uA*lo*.8,1.);}`});
+const rainbow=new THREE.Mesh(new THREE.RingGeometry(.9,1,96,1,0,Math.PI),rbwM);rainbow.scale.setScalar(140);rainbow.visible=false;rainbow.renderOrder=-1;scene.add(rainbow);
+function updRainbow(){const a=env.rbw*sst(-.02,.1,sunDir.y)*(1-env.rain*.6);rbwM.uniforms.uA.value=a;rainbow.visible=a>.01;if(!rainbow.visible)return;const az=Math.atan2(-sunDir.x,-sunDir.z);rainbow.position.set(cam.position.x+Math.sin(az)*240,cam.position.y-18-sunDir.y*55,cam.position.z+Math.cos(az)*240);rainbow.lookAt(cam.position.x,rainbow.position.y,cam.position.z)}
 const rain=new THREE.LineSegments(rainG,new THREE.LineBasicMaterial({color:0xaabbcc,transparent:true,opacity:.45,fog:false}));rain.frustumCulled=false;scene.add(rain);
 
 /* 등산로, 다리, 소원나무, 요정 */
@@ -1158,11 +1167,11 @@ function buildFamily(){while(fam.children.length)fam.remove(fam.children[0]);con
 buildFamily();
 
 /* ---------- 시간·계절·날씨 ---------- */
-const SEASONS=['봄','여름','가을','겨울'],WX={clear:'맑음',cloudy:'구름 많음',rain:'비',snow:'눈',monsoon:'장마',storm:'태풍'};
+const SEASONS=['봄','여름','가을','겨울'],WX={clear:'맑음',cloudy:'구름 많음',rain:'비',snow:'눈',monsoon:'장마',storm:'태풍',hail:'우박',fog:'안개',rainbow:'무지개'};
 const seasonOf=m=>m>=3&&m<=5?0:m<=8&&m>=6?1:m>=9&&m<=11?2:3;
 function autoWx(d,s){const doy=Math.floor((d-new Date(d.getFullYear(),0,0))/864e5),x=Math.abs(Math.sin(doy*12.9898+d.getFullYear()*78.233)*43758.5453)%1;
   if(s===3)return'snow';if(s===1){const mo=d.getMonth()+1;if((mo===7||(mo===6&&d.getDate()>20))&&x<.55)return'monsoon';if(mo===8&&x<.08)return'storm'}const p=[[.22,.3,0],[.33,.27,0],[.14,.3,0],[0,.3,.3]][s];if(x<p[0])return'rain';if(x<p[0]+p[2])return'snow';if(x<p[0]+p[1]+p[2])return'cloudy';return'clear'}
-let flash=0,curSeason=-1,env={cloud:.1,rain:0,snow:0,storm:0},wind=.4,night=0,day=1;
+let flash=0,curSeason=-1,env={cloud:.1,rain:0,snow:0,storm:0,hail:0,fog:0,rbw:0},wind=.4,night=0,day=1;
 let envO=null,hostName='',hostSeen=0;const EV=()=>envO||{t:S.time,s:S.season,w:S.wx,g:S.glowPrev?1:0};
 function clock(){const d=new Date(),live=d.getHours()+d.getMinutes()/60,E=EV();const doy=d.getMonth()*30.4+d.getDate(),dl=12+2.4*Math.cos((doy-172)/365*Math.PI*2),sr=12.4-dl/2,ss=sr+dl;const hour=E.t==='live'?live:{dawn:sr-.45,morning:sr+.7,noon:13,dusk:ss-.15,night:22.5}[E.t];
   const season=E.s==='live'?seasonOf(d.getMonth()+1):+E.s;const wx=E.w==='auto'?autoWx(d,season):E.w;return{d,hour,season,wx}}
@@ -1182,7 +1191,7 @@ function applySeason(s){curSeason=s;const r=rng(51);
   grass.count=Math.min(s===3?1500:NG,QG[S.q]);const fc=[['#f7a8c4','#ffe36e','#ffffff','#c9a8f0'],['#ffffff','#ffe36e','#8fb6ff'],['#e8e2f8','#c9a8f0'],['#ffffff']][s];
   for(let i=0;i<NF;i++)flowers.setColorAt(i,C(fc[Math.floor(r()*fc.length)]));flowers.instanceColor.needsUpdate=true;flowers.count=[NF,180,60,0][s];seasonFlora(s);
   const dc=s===0?['#f7c4d6','#fbe0e8']:s===2?['#e0762f','#c9432f','#e8b33c']:['#ffffff'],A=drift.geometry.attributes.aC.array;for(let i=0;i<ND;i++){const c=C(dc[i%dc.length]);A.set([c.r,c.g,c.b,.95],i*4)}drift.geometry.attributes.aC.needsUpdate=true}
-const TWM={t0:C('#27386f'),t:C('#78b2ec'),m0:C('#f6c48e'),m:C('#ffe680'),h0:C('#ffd2a0'),h:C('#fff8e6')},TWE={t0:C('#3a2a66'),t:C('#6c4fa6'),m0:C('#c78ab8'),m:C('#8fc3ea'),h0:C('#e8673a'),h:C('#ff9348')};
+const TWM={t0:C('#121a4a'),t:C('#78b2ec'),m0:C('#5b4aa6'),m:C('#ffe680'),h0:C('#6f8fe0'),h:C('#fff8e6')},TWE={t0:C('#3a2a66'),t:C('#6c4fa6'),m0:C('#c78ab8'),m:C('#8fc3ea'),h0:C('#e8673a'),h:C('#ff9348')};
 const SKY={nT:C('#040814'),nH:C('#111b36'),dT:C('#6aa9ec'),dH:C('#d6edfb'),uT:C('#2b3a6e'),uH:C('#f0915e'),gD:C('#8d97a1'),gN:C('#15181e')};
 const tmpA=new THREE.Color(),tmpB=new THREE.Color(),sunDir=new THREE.Vector3();
 function updateEnv(dt,ck){
@@ -1190,14 +1199,14 @@ function updateEnv(dt,ck){
   const m=ck.d.getMonth(),doy=m*30.4+ck.d.getDate(),dayLen=12+2.4*Math.cos((doy-172)/365*Math.PI*2),sr=12.4-dayLen/2,p=(ck.hour-sr)/dayLen;
   const el=Math.sin(Math.PI*p)*(.62+.35*Math.cos((doy-172)/365*Math.PI*2));sunDir.set(Math.cos(Math.PI*Math.min(1.3,Math.max(-.3,p))),el,-.55).normalize();
   day=sst(-.08,.22,sunDir.y);const tw=Math.max(0,1-Math.abs(sunDir.y-.02)/.2);night=1-sst(-.2,.02,sunDir.y);
-  const tgt={clear:[.12,0,0,0],cloudy:[.78,0,0,0],rain:[.96,1,0,0],monsoon:[1,1,0,.35],storm:[1,1,0,1],snow:[.85,0,1,0]}[ck.wx]||[.12,0,0,0];const k=Math.min(1,dt*.6);env.cloud=lerp(env.cloud,tgt[0],k);env.rain=lerp(env.rain,tgt[1],k);env.snow=lerp(env.snow,tgt[2],k);env.storm=lerp(env.storm||0,tgt[3],k);
+  const tgt={clear:[.12,0,0,0],cloudy:[.78,0,0,0],rain:[.96,1,0,0],monsoon:[1,1,0,.35],storm:[1,1,0,1],snow:[.85,0,1,0],hail:[.92,.35,0,0,1],fog:[.55,0,0,0,0,1],rainbow:[.3,0,0,0,0,0,1]}[ck.wx]||[.12,0,0,0];env.hail=lerp(env.hail,tgt[4]||0,Math.min(1,dt*.6));env.fog=lerp(env.fog,tgt[5]||0,Math.min(1,dt*.4));env.rbw=lerp(env.rbw,tgt[6]||0,Math.min(1,dt*.3));const k=Math.min(1,dt*.6);env.cloud=lerp(env.cloud,tgt[0],k);env.rain=lerp(env.rain,tgt[1],k);env.snow=lerp(env.snow,tgt[2],k);env.storm=lerp(env.storm||0,tgt[3],k);
   const cl=env.cloud;tmpA.copy(SKY.nT).lerp(SKY.dT,day).lerp(SKY.uT,tw*.6);tmpB.copy(SKY.nH).lerp(SKY.dH,day).lerp(SKY.uH,tw*.75);
-  const twW=sst(-.2,-.03,sunDir.y)*(1-sst(.12,.32,sunDir.y)),morn=p<.5,clr=1-cl*.75,TW=morn?TWM:TWE,pre=sst(-.2,.04,sunDir.y);
+  const twW=sst(-.2,-.03,sunDir.y)*(1-sst(.12,.32,sunDir.y)),morn=p<.5,clr=1-cl*.75,TW=morn?TWM:TWE,pre=morn?sst(-.04,.1,sunDir.y):sst(-.2,.04,sunDir.y);
   if(twW>0){const a=twW*clr;tmpA.lerp(TW.t0.clone().lerp(TW.t,pre),a);tmpB.lerp(TW.h0.clone().lerp(TW.h,pre),a)}
-  skyU.uMid.value.copy(TW.m0).lerp(TW.m,pre);skyU.uMidA.value=twW*clr;skyU.uGlow.value=twW*clr*(morn?1.1:1.4);
+  skyU.uMid.value.copy(TW.m0).lerp(TW.m,pre);skyU.uMidA.value=twW*clr;skyU.uGlow.value=twW*clr*(morn?1.1*pre:1.4);
   const gray=SKY.gN.clone().lerp(SKY.gD,day);tmpA.lerp(gray,cl*.75);tmpB.lerp(gray,cl*.7);if(ck.season===3)tmpB.lerp(C('#dfe6ee'),.15*day);
   skyU.uTop.value.copy(tmpA);skyU.uHor.value.copy(tmpB);skyU.uSunDir.value.copy(sunDir);skyU.uSun.value=(1-cl*.85)*sst(-.1,.05,sunDir.y);skyU.uCloud.value=cl;skyU.uWind.value=wind;skyU.uCL.value.copy(gray).lerp(C('#ffffff'),day*(1-cl*.5)).lerp(C('#f4a27c'),tw*.55);skyU.uSunCol.value.set(twW>.3?(morn?'#fff0b0':'#ff8a3c'):'#fff0c8');if(twW>.2)skyU.uCL.value.lerp(morn?C('#fff4dc'):C('#e89a8c'),twW*.5);
-  scene.fog.color.copy(tmpB);fogU.uFogC.value.copy(tmpB);const far=170-env.rain*70-env.snow*85;scene.fog.far=far;fogU.uFogF.value=far;
+  scene.fog.color.copy(tmpB);fogU.uFogC.value.copy(tmpB);if(env.fog>.01){const fc=C('#2a3242').lerp(C('#cfd6dc'),day);scene.fog.color.lerp(fc,env.fog*.85);fogU.uFogC.value.copy(scene.fog.color)}const far=170-env.rain*70-env.snow*85-env.fog*140;scene.fog.near=30-env.fog*28;fogU.uFogN.value=scene.fog.near;scene.fog.far=far;fogU.uFogF.value=far;
   hemi.color.copy(tmpA).lerp(C('#ffffff'),.3);hemi.groundColor.set(ck.season===3?'#8a9399':'#3a4426');hemi.intensity=.16+.7*day*(1-.25*cl)+.05*(1-night);
   const sT=new THREE.Vector3(player.x,0,player.z);sun.target.position.copy(sT);sun.position.copy(sunDir).multiplyScalar(70).add(sT);sun.color.set(tw>.3?'#ffb47a':'#fff4e0');sun.intensity=Math.max(0,1*day*(1-.65*cl));
   if(day<.05){const am=new THREE.Vector3().subVectors(moon.position,cam.position).normalize();if(am.y>.05){sun.position.copy(am).multiplyScalar(70).add(sT);sun.intensity=(.08+.3*moonFrac)*(1-cl*.8)}else{sun.position.set(-sunDir.x,.6,-.3).multiplyScalar(70).add(sT);sun.intensity=.06*(1-cl*.8)}sun.color.set('#9fb4e0')}
@@ -1572,6 +1581,7 @@ function tick(){if(!soundOn||!ck0)return;const now=ac.currentTime,ts=.2,R_=Math.
   const underT=PROPS().some(P=>{if(P.k!=='tarp')return false;const c=Math.cos(-P.ry),sn=Math.sin(-P.ry),dx=player.x-P.x,dz=player.z-P.z;return Math.abs(dx*c+dz*sn)<1.4&&Math.abs(-dx*sn+dz*c)<1.4});
   Lg.rain.gain.setTargetAtTime(vol('rain')*env.rain*(underT?.7:1.1)*(.55+.45*(S.rainAmt??1))*(1+env.storm*.6),now,.5);if(env.storm>.5&&R_()<.01)thunder(now);if(underT&&env.rain>.1)for(let i=0;i<5;i++)if(R_()<env.rain)burst(Lg.rain,now+R_()*.08,700+R_()*900,2.2,2.6*vol('rain'),.6+R_()*.3,R_()*1.2-.6,.05);if(env.rain>.1){for(let i=0;i<6;i++)if(R_()<env.rain)burst(Lg.rain,now+R_()*.08,2200+R_()*5000,2.5,2.2,.7+R_(),R_()*2-1);
     if(R_()<env.rain*.5)burst(Lg.rain,now+R_()*.08,350+R_()*250,3,3,.5,R_()*1.2-.6,.08)}
+  if(env.hail>.08)for(let i=0;i<7;i++)if(R_()<env.hail)burst(master,now+R_()*.08,2600+R_()*3800,5,(underT?2.2:1.2)*vol('rain'),1.3,R_()*1.4-.7,.012);
   Lg.birds.gain.setTargetAtTime(vol('birds'),now,ts);const lieMus=player.pose==='lie'&&(viewMode==='stars'||PROPS().some(P=>P.k==='mat'&&Math.hypot(P.x-player.x,P.z-player.z)<1.6));Lg.bugs.gain.setTargetAtTime(vol('bugs')*(lieMus?2.1:1),now,ts);if(bung&&bung.cooking)for(let i=0;i<3;i++)burst(master,now+R_()*.08,3500+R_()*4000,1.2,.35+R_()*.3,1,0,.04);if(curSeason===3&&night>.5&&R_()<.0025)howl(now,R_()*1.6-.8);music(now,lieMus||(radioOn&&!!(roomAt()||{}).van));const dry=1-env.rain;
   if(ck0.season===1&&day>.5&&dry>.6&&R_()<.006)cicada(now,R_()*1.6-.8);
   animals.forEach(A=>{const d=Math.hypot(A.x-cam.position.x,A.z-cam.position.z);if(d>20)return;const v=(1-d/20);if(A.moving&&R_()<(A.flee?.6:.3))burst(Lg.birds,now+R_()*.06,2600+R_()*2500,.9,v*(A.kind==='deer'?1.4:.8),.8+R_()*.5,0,.05);
@@ -1648,7 +1658,7 @@ function syncPeers(peers){const seen=new Set();for(const p0 of peers){if(p0.same
     const cl=v=>Math.max(-100,Math.min(100,+v||0));r.tx=cl(pr.x);r.tz=cl(pr.z);r.tr=+pr.r||0;r.lift=Math.min(34,Math.max(-1.2,+pr.l||0));r.walking=!!pr.w}
   for(const [k,r] of remotes)if(!seen.has(k)){scene.remove(r.g);remotes.delete(k);if(markEls.has('p'+k)){markEls.get('p'+k).remove();markEls.delete('p'+k)}}
   let hp=null;if(!isHost())for(const p of peers){if(!p.sameTab&&p.presence&&p.presence.hs===1&&p.presence.env){hp=p;break}}
-  if(hp){const e=hp.presence.env,one=(v,l,d)=>l.includes(v)?v:d;const nE={t:one(e.t,['live','dawn','morning','noon','dusk','night'],'live'),s:one(e.s,['live','0','1','2','3'],'live'),w:one(e.w,['auto','clear','cloudy','rain','snow'],'auto'),g:e.g===1?1:0};
+  if(hp){const e=hp.presence.env,one=(v,l,d)=>l.includes(v)?v:d;const nE={t:one(e.t,['live','dawn','morning','noon','dusk','night'],'live'),s:one(e.s,['live','0','1','2','3'],'live'),w:one(e.w,['auto','clear','cloudy','rain','monsoon','storm','snow','hail','fog','rainbow'],'auto'),g:e.g===1?1:0};
     const ch=JSON.stringify(nE)!==JSON.stringify(envO);envO=nE;const nm=okS(hp.presence.n,12)||'방장';if(!hostName||ch){if(!hostName)toast(`방장 ${nm}님이 정한 캠핑장 분위기를 따라요`,3500)}hostName=nm;if((e.f===1)!==!!S.fire){S.fire=e.f===1;$('bFire').textContent=S.fire?'모닥불 끄기':'모닥불 피우기'}hudT=0}
   if(hp&&hp.presence.world&&typeof hp.presence.world==='object'){const w=hp.presence.world,num=v=>Math.max(-100,Math.min(100,+v||0));
     const nw={s:w.s===1?1:w.s===0?0:null,c:['tent','glamp','hammock','van'].includes(w.c)?w.c:'tent',name:okS(w.n,14),props:(Array.isArray(w.p)?w.p:[]).slice(0,30).filter(a=>Array.isArray(a)&&PROPN[a[0]]).map((a,i)=>({k:a[0],x:num(a[1]),z:num(a[2]),ry:+a[3]||0,id:'h'+(parseInt(a[4])||i)})),
@@ -1741,7 +1751,7 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;const 
     p.y-=sp2*dt*(.7+.3*Math.sin(p.p));p.x+=(wind*1.6+Math.sin(T*1.3+p.p)*.5)*dt;p.z+=Math.cos(T+p.p)*.3*dt;D.position.array.set([p.x,p.y,p.z],i*3);D.aS.array[i]=dMode==='snow'?.34+.16*Math.sin(p.p*3):.28;if(dMode==='snow')p.x+=Math.sin(T*.8+p.p*2)*.25*dt;D.aC.array[i*4+3]=dMode==='snow'?.9*(.35+.65*day+.2):.9*(.4+.6*day)}
   D.position.needsUpdate=D.aC.needsUpdate=D.aS.needsUpdate=true;
   const rN=Math.floor(NR*Math.min(1,env.rain*(.35+.4*(S.rainAmt??1))*(1+env.storm*.9)));rain.geometry.setDrawRange(0,rN*2);rain.material.opacity=.25+.3*day;for(let i=0;i<rN;i++){let o=i*6;if(rainP[o+1]<cam.position.y-12||rainP[o+1]===0||Math.abs(rainP[o]-cam.position.x)>30){rainP[o]=cam.position.x+(Math.random()-.5)*50;rainP[o+2]=cam.position.z+(Math.random()-.5)*50;rainP[o+1]=cam.position.y+5+Math.random()*20}
-    rainP[o+1]-=26*dt;rainP[o]+=wind*3*dt;rainP[o+3]=rainP[o]-wind*.15;rainP[o+4]=rainP[o+1]+.7;rainP[o+5]=rainP[o+2]}rain.geometry.attributes.position.needsUpdate=true;
+    rainP[o+1]-=26*dt;rainP[o]+=wind*3*dt;rainP[o+3]=rainP[o]-wind*.15;rainP[o+4]=rainP[o+1]+.7;rainP[o+5]=rainP[o+2]}rain.geometry.attributes.position.needsUpdate=true;updHail(dt);updRainbow();
   {const rest=glowDay(ck);treeRest+=((rest?1:0)-treeRest)*Math.min(1,dt*.8);const lit=1-treeRest,nt=sst(.15,.85,night),ss=SEASON_TREE[Math.max(0,curSeason)],win=curSeason===3;
    const base=C(ss.c);crownMat.color.copy(base).lerp(C('#ffe08a'),nt*.08*lit).lerp(C('#8a7a5a'),treeRest*.4);crownMat.emissive.copy(base).lerp(C('#ffc040'),win?.75:.22);crownMat.emissiveIntensity=(.02+(win?.85:.42)*nt)*lit;
    barkGold.emissiveIntensity=(.02+(win?.75:.5)*nt)*lit+(win?.08:0);barkGold.emissive.set(win?'#c07a22':'#8a5a20');
@@ -1788,7 +1798,7 @@ function seg(el,opts,get,set){el.innerHTML='';opts.forEach(([v,t])=>{const b=doc
 $('bGlow').setAttribute('aria-pressed',S.glowPrev);$('bGlow').textContent=S.glowPrev?'미리보기 끄기':'빛나는 들판 미리보기';
 $('bGlow').onclick=()=>{S.glowPrev=!S.glowPrev;save();$('bGlow').setAttribute('aria-pressed',S.glowPrev);$('bGlow').textContent=S.glowPrev?'미리보기 끄기':'빛나는 들판 미리보기';toast(S.glowPrev?(night>.5?'들판의 꽃들이 하나둘 빛나기 시작해요':'빛나는 들판은 밤에 보여요. 시간에서 \'밤\'을 골라 보세요'):'미리보기를 껐어요',3500)};
 $('bLive').onclick=()=>{S.time='live';S.season='live';S.wx='auto';save();seg($('segTime'),TOPT,()=>S.time,v=>S.time=v);seg($('segSeason'),SOPT,()=>S.season,v=>S.season=v);seg($('segWx'),WOPT,()=>S.wx,v=>S.wx=v);hudT=0;toast('지금 날짜·시간·계절로 맞췄어요')};
-const TOPT=[['live','지금'],['dawn','새벽'],['morning','아침'],['noon','낮'],['dusk','노을'],['night','밤']],SOPT=[['live','지금 계절'],['0','봄'],['1','여름'],['2','가을'],['3','겨울']],WOPT=[['auto','오늘 날씨'],['clear','맑음'],['cloudy','흐림'],['rain','비'],['monsoon','장마'],['storm','태풍'],['snow','눈']];
+const TOPT=[['live','지금'],['dawn','새벽'],['morning','아침'],['noon','낮'],['dusk','노을'],['night','밤']],SOPT=[['live','지금 계절'],['0','봄'],['1','여름'],['2','가을'],['3','겨울']],WOPT=[['auto','오늘 날씨'],['clear','맑음'],['cloudy','흐림'],['rain','비'],['monsoon','장마'],['storm','태풍'],['snow','눈'],['hail','우박'],['fog','안개'],['rainbow','무지개']];
 seg($('segTime'),TOPT,()=>S.time,v=>{S.time=v;hudT=0});seg($('segSeason'),SOPT,()=>S.season,v=>{S.season=v;hudT=0});seg($('segWx'),WOPT,()=>S.wx,v=>{S.wx=v;hudT=0});
 const MIX=[['master','전체 크기'],['stream','시냇물'],['wind','바람과 풀잎'],['birds','새소리·동물'],['fire','장작 타는 소리'],['bugs','풀벌레·매미'],['rain','빗소리']];
 $('mix').innerHTML=MIX.map(([k,n])=>`<label for="m-${k}">${n}</label><input type="range" id="m-${k}" min="0" max="${k==='master'?150:100}" value="${Math.round(S.vol[k]*100)}"><output id="o-${k}">${Math.round(S.vol[k]*100)}</output>`+(k==='master'?'<span></span>':`<button id="t-${k}" aria-pressed="${S.on[k]!==false}" aria-label="${n} 켜고 끄기">${S.on[k]!==false?'켬':'끔'}</button>`)).join('');
