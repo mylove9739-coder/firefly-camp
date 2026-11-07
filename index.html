@@ -608,7 +608,7 @@ function bungPan(){const g=new THREE.Group(),iron=lam(0x2c2c30),wd=clay('#8a5a35
   [-.08,.08].forEach(x=>{const rod=new THREE.Mesh(new THREE.CylinderGeometry(.01,.01,1.1,6),iron);rod.rotation.x=Math.PI/2;rod.position.set(x,0,.68);g.add(rod);const gr=new THREE.Mesh(new THREE.CylinderGeometry(.022,.022,.2,8),wd);gr.rotation.x=Math.PI/2;gr.position.set(x,0,1.2);g.add(gr)});
   return{g,lidP,fish}}
 function startBung(){if(bung)return;if(!S.fire){toast('모닥불을 먼저 피워 주세요');return}clearTgt();if(player.pose!=='walk')setPose('walk');const r=Math.hypot(player.x,player.z)||1;player.x=player.x/r*1.95;player.z=player.z/r*1.95;player.ry=Math.atan2(-player.x,-player.z);
-  const P=bungPan();scene.add(P.g);P.lidP.rotation.x=-1.9;bung={...P,ph:'ready',cookA:0,cookB:0,flip:0,fill:'',eat:0,bites:[0,0],tok:Math.random()};bungAsk('붕어빵 틀을 모닥불 위에 올렸어요',[['반죽 붓기',bPour],['그만두기',endBung]])}
+  const P=bungPan();scene.add(P.g);P.lidP.rotation.x=-1.9;bung={...P,ph:'ready',cookA:0,cookB:0,flip:0,fill:'',eat:0,bites:[0,0],tok:Math.random()};bgOpen()}
 function bungAsk(t,o){ask(t,o,true)}
 const bLater=(ms,fn)=>{const B=bung;setTimeout(()=>{if(bung===B)fn()},ms)};
 function bPour(){const B=bung;B.fish.forEach(f=>{f.visible=true;f.scale.setScalar(1)});if(ac&&soundOn){const n=ac.currentTime;for(let i=0;i<10;i++)burst(master,n+i*.04,900+Math.random()*600,1.5,.5,.6,0,.08)}bungAsk('반죽을 주르륵 부었어요. 속에 무엇을 넣을까요?',[['팥 넣기',()=>bFill('팥')],['슈크림 넣기',()=>bFill('슈크림')]])}
@@ -616,12 +616,66 @@ function bFill(k){const B=bung;B.fill=k;B.fish.forEach(f=>{const b=new THREE.Mes
   bLater(500,()=>{B.ph='closeA';B.pt=0;B.cooking=true;bungAsk('뚜껑을 덮었어요. 지글지글… 아래쪽이 노릇해지면 뒤집어요',[]);bLater(4200,()=>bungAsk('고소한 냄새가 나요!',[['뒤집기',bFlip]]))})}
 function bFlip(){const B=bung;B.ph='flip';B.pt=0;if(ac&&soundOn)burst(master,ac.currentTime,300,2,1.2,.5,0,.12);bungAsk('탁! 뒤집었어요. 반대쪽도 굽는 중…',[]);bLater(4200,()=>bungAsk('노릇노릇 다 구워졌어요!',[['꺼내기',bTake]]))}
 function bTake(){const B=bung;B.ph='open';B.pt=0;B.cooking=false;bLater(700,bEatMenu)}
-function bEatMenu(){const B=bung,left=B.fish.filter(f=>f.visible).length;if(!left){bungAsk('맛있게 다 먹었어요. 또 구울까요?',[['또 굽기',()=>{B.fish.forEach(f=>{if(f.userData.fill){f.remove(f.userData.fill);f.userData.fill=null}f.userData.m.color.set('#f3dfa6');f.rotation.set(-Math.PI/2,0,0)});B.cookA=B.cookB=0;B.bites=[0,0];B.ph='ready';B.lidP.rotation.x=-1.9;B.g.rotation.z=0;bPour()}],['그만하기',endBung]]);return}
+function bEatMenu(){const B=bung,left=B.fish.filter(f=>f.visible).length;if(!left){bungAsk('맛있게 다 먹었어요. 또 구울까요?',[['또 굽기',()=>{B.fish.forEach(f=>{if(f.userData.fill){f.remove(f.userData.fill);f.userData.fill=null}f.userData.m.color.set('#f3dfa6');f.rotation.set(-Math.PI/2,0,0)});B.cookA=B.cookB=0;B.bites=[0,0];B.ph='ready';B.lidP.rotation.x=-1.9;B.g.rotation.z=0;B.fish.forEach(f=>f.visible=false);bgOpen()}],['그만하기',endBung]]);return}
   bungAsk(`따끈따끈 붕어빵 ${left}개!`,[['한 입 먹기',bEat],['가족에게 나눠주기',bShare],['그만하기',endBung]])}
 function bEat(){const B=bung,i=B.fish.findIndex(f=>f.visible);if(i<0)return;B.bites[i]++;const f=B.fish[i];if(ac&&soundOn){const n=ac.currentTime;for(let q=0;q<6;q++)burst(master,n+q*.035,1800+Math.random()*2500,1.4,1.2,1,0,.03)}
-  toast(B.fill==='팥'?pick(['바삭! 달콤한 팥이 가득해요','후후 불어 먹으니 팥이 따끈해요']):pick(['바삭! 부드러운 슈크림이 흘러나와요','달콤한 슈크림이 입안 가득해요']),1800);if(B.bites[i]>=3)f.visible=false;else f.scale.setScalar(1-B.bites[i]*.25);bEatMenu()}
+  toast(B.fill==='섞음'?pick(['팥 하나, 슈크림 하나! 골라 먹는 재미가 있어요','이번엔 어떤 맛일까? 두근두근']):B.fill==='팥'?pick(['바삭! 달콤한 팥이 가득해요','후후 불어 먹으니 팥이 따끈해요']):pick(['바삭! 부드러운 슈크림이 흘러나와요','달콤한 슈크림이 입안 가득해요']),1800);if(B.bites[i]>=3)f.visible=false;else f.scale.setScalar(1-B.bites[i]*.25);bEatMenu()}
 function bShare(){const B=bung,f=B.fish.find(f=>f.visible);if(f)f.visible=false;const fam=(S.people||[]).filter(p=>p.id!==S.me);const nm=fam.length?pick(fam).name:'가족';logChat(nm,pick(['와, 붕어빵이다! 고마워','따끈따끈해, 정말 맛있다','머리부터 먹을까 꼬리부터 먹을까?']));bEatMenu()}
-function endBung(){if(!bung)return;scene.remove(bung.g);bung=null;$('choice').hidden=true;if(player.stand)player.stand.userData.arms.forEach(m=>{m.rotation.x=0;m.rotation.z=0})}
+function endBung(){bgClose();if(!bung)return;scene.remove(bung.g);bung=null;$('choice').hidden=true;if(player.stand)player.stand.userData.arms.forEach(m=>{m.rotation.x=0;m.rotation.z=0})}
+/* 붕어빵 확대 미니게임 */
+const BG={on:false,m:[],ph:'',fill:'',hold:-1,hx:0,hy:0,t:0,lid:0,flipA:0,steam:[],cook:[0,0],side:0,msg:''};
+function bgEl(){if(BG.el)return;const CP=CanvasRenderingContext2D.prototype;if(!CP.roundRect)CP.roundRect=function(x,y,w,h){this.rect(x,y,w,h)};const d=document.createElement('div');d.id='bungG';d.style.cssText='position:fixed;inset:0;z-index:60;background:radial-gradient(circle at 50% 60%,#4a1f0c,#0b0a10);display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#f6efdd;font-family:inherit;touch-action:none;padding:16px';
+  d.innerHTML='<div id="bgT" style="font-size:17px;font-weight:700;text-align:center"></div><div id="bgH" style="font-size:13.5px;color:#e9d9b8;text-align:center;min-height:38px;max-width:420px"></div><canvas id="bgC" style="width:min(94vw,440px);height:min(94vw,440px);touch-action:none"></canvas><div id="bgB" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;min-height:44px"></div><button id="bgX" style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:999px;padding:6px 12px">그만하기</button>';
+  document.body.appendChild(d);BG.el=d;BG.cv=d.querySelector('#bgC');BG.cx=BG.cv.getContext('2d');const dp=Math.min(2,devicePixelRatio||1);BG.cv.width=BG.cv.height=400*dp;BG.cx.scale(dp,dp);
+  d.querySelector('#bgX').onclick=()=>{bgClose();endBung()};
+  const pos=e=>{const r=BG.cv.getBoundingClientRect();return[(e.clientX-r.left)/r.width*400,(e.clientY-r.top)/r.height*400]};
+  BG.cv.addEventListener('pointerdown',e=>{e.preventDefault();const[x,y]=pos(e);bgDown(x,y)});BG.cv.addEventListener('pointermove',e=>{if(BG.hold>=0){const[x,y]=pos(e);BG.hx=x;BG.hy=y}});
+  ['pointerup','pointercancel','pointerleave'].forEach(k=>BG.cv.addEventListener(k,()=>{BG.hold=-1}))}
+const bgIn=(m,x,y)=>((x-m.x-8)/66)**2+((y-m.y)/44)**2<1||(x<m.x-40&&x>m.x-92&&Math.abs(y-m.y)<36);
+function bgBtns(list){const b=$('bgB');b.innerHTML='';list.forEach(([t,f,hi])=>{const e=document.createElement('button');e.textContent=t;e.style.cssText='border-radius:999px;padding:10px 16px;font-size:14.5px;border:1px solid rgba(255,220,150,.5);background:'+(hi?'#f2a54a;color:#2a1608':'rgba(255,255,255,.1);color:#fff')+';font-weight:600';e.onclick=f;b.appendChild(e)})}
+function bgSet(ph){BG.ph=ph;BG.t=0;const T=$('bgT'),H=$('bgH');
+  if(ph==='pour1'){T.textContent='① 반죽 붓기';H.textContent='틀을 꾹 누르고 있으면 반죽이 주르륵 흘러요. 틀의 절반쯤(점선)까지 부어 주세요';bgBtns([])}
+  if(ph==='fill'){T.textContent='② 속재료 넣기';H.textContent='속재료를 고르고 각 틀 가운데를 톡 눌러 올려 주세요';bgBtns([['🫘 팥',()=>{BG.fill='팥';bgSet('fill')},BG.fill==='팥'],['🍮 슈크림',()=>{BG.fill='슈크림';bgSet('fill')},BG.fill==='슈크림']]);if(BG.fill)H.textContent=BG.fill+'을(를) 골랐어요. 틀을 톡 눌러 올려요'}
+  if(ph==='pour2'){T.textContent='③ 반죽으로 덮기';H.textContent='속재료 위로 반죽을 한 번 더 부어 틀을 가득 채워 주세요';bgBtns([])}
+  if(ph==='close'){T.textContent='④ 뚜껑 덮기';H.textContent='반죽이 가득 찼어요! 뚜껑을 덮어 구워요';bgBtns([['뚜껑 덮기',()=>{bgClack(.9);bgSet('cookA');if(bung){bung.ph='closeA';bung.pt=0;bung.cooking=true}},1]])}
+  if(ph==='cookA'||ph==='cookB'){BG.side=ph==='cookA'?0:1;T.textContent=ph==='cookA'?'⑤ 아랫면 굽기':'⑥ 윗면 굽기';H.textContent='지글지글… 게이지가 노란 구간에 오면 '+(ph==='cookA'?'뒤집어요':'꺼내요');bgBtns([[ph==='cookA'?'뒤집기':'뚜껑 열기',()=>{if(ph==='cookA'){bgClack(1.3);BG.flipA=1;bgSet('cookB');if(bung){bung.ph='flip';bung.pt=0}}else{bgClack(.7);bgSet('open');if(bung){bung.ph='open';bung.pt=0;bung.cooking=false}}},1]])}
+  if(ph==='open'){T.textContent='⑦ 꺼내기';const s=Math.min(...BG.cook),b=Math.max(...BG.cook);BG.msg=b>1.15?'앗, 살짝 탔어요. 그래도 바삭바삭!':s<.6?'조금 덜 익었지만 촉촉해요':'노릇노릇 완벽하게 구워졌어요!';H.textContent=BG.msg+' 붕어빵을 톡 눌러 꺼내요';bgBtns([])}}
+function bgClack(r){if(ac&&soundOn){const n=ac.currentTime;burst(master,n,260*r,2,1.4,.5,0,.1);burst(master,n+.02,1800,3,.6,1,0,.04)}}
+function bgOpen(){bgEl();BG.on=true;BG.el.style.display='flex';BG.fill='';BG.lid=0;BG.flipA=0;BG.cook=[0,0];BG.steam=[];BG.m=[{x:112,y:200},{x:292,y:200}].map(o=>({...o,a:0,b:0,f:0,px:o.x,py:o.y,took:false,sp:0}));bgSet('pour1');cancelAnimationFrame(BG.raf);let last=performance.now();const loop=t=>{if(!BG.on)return;const dt=Math.min(.05,(t-last)/1000);last=t;bgStep(dt);bgDraw();BG.raf=requestAnimationFrame(loop)};BG.raf=requestAnimationFrame(loop)}
+function bgClose(){if(!BG.el)return;BG.on=false;BG.el.style.display='none';cancelAnimationFrame(BG.raf)}
+function bgDown(x,y){const i=BG.m.findIndex(m=>bgIn(m,x,y));if(BG.ph==='pour1'||BG.ph==='pour2'){if(i>=0){BG.hold=i;BG.hx=x;BG.hy=y}return}
+  if(BG.ph==='fill'){if(!BG.fill){toast('먼저 팥이나 슈크림을 골라 주세요',1600);return}if(i>=0&&!BG.m[i].f){BG.m[i].f=BG.fill;BG.m[i].fx=x;BG.m[i].fy=y;if(ac&&soundOn)burst(master,ac.currentTime,500,2,.9,.6,0,.08);if(BG.m.every(m=>m.f))setTimeout(()=>BG.on&&bgSet('pour2'),500)}return}
+  if(BG.ph==='open'&&i>=0&&!BG.m[i].took&&BG.lid<.05){BG.m[i].took=true;if(ac&&soundOn)for(let q=0;q<4;q++)burst(master,ac.currentTime+q*.03,2500+Math.random()*2000,1.4,.7,1,0,.03);if(BG.m.every(m=>m.took))setTimeout(bgFinish,600)}}
+function bgStep(dt){BG.t+=dt;const P=BG.ph;
+  if(BG.hold>=0&&(P==='pour1'||P==='pour2')){const m=BG.m[BG.hold],k=P==='pour1'?'a':'b';m[k]+=dt*.55;m.px+=(BG.hx-m.px)*dt*3;m.py+=(BG.hy-m.py)*dt*3;if(ac&&soundOn&&Math.random()<.5)burst(master,ac.currentTime,600+Math.random()*500,1.2,.45,.5,0,.07);
+    if(P==='pour1'&&m.a>=.5){m.a=Math.min(m.a,.62);BG.hold=-1;if(BG.m.every(q=>q.a>=.5))setTimeout(()=>BG.on&&BG.ph==='pour1'&&bgSet('fill'),400);else toast('좋아요! 다른 틀에도 부어 주세요',1500)}
+    if(P==='pour2'&&m.b>=.5){m.b=Math.min(m.b,.62);BG.hold=-1;if(BG.m.every(q=>q.b>=.5))setTimeout(()=>BG.on&&BG.ph==='pour2'&&bgSet('close'),400)}}
+  const closed=P==='cookA'||P==='cookB';BG.lid+=((closed?1:0)-BG.lid)*Math.min(1,dt*6);BG.flipA=Math.max(0,BG.flipA-dt*1.6);
+  if(closed){BG.cook[BG.side]+=dt/6;if(Math.random()<dt*9)BG.steam.push({x:60+Math.random()*280,y:170+Math.random()*60,a:1});if(BG.cook[BG.side]>1.2&&!BG.warn){BG.warn=1;toast('타는 냄새가 나요! 서둘러요',1500)}}else BG.warn=0;
+  BG.steam.forEach(s=>{s.y-=dt*40;s.x+=Math.sin(s.y*.05)*dt*10;s.a-=dt*.6});BG.steam=BG.steam.filter(s=>s.a>0)}
+function bgFish(c,x,y,s=1){c.beginPath();c.ellipse(x+8*s,y,62*s,40*s,0,0,Math.PI*2);c.moveTo(x-42*s,y);c.lineTo(x-86*s,y-32*s);c.quadraticCurveTo(x-72*s,y,x-86*s,y+32*s);c.closePath()}
+function bgCol(v){const a=[244,227,181],g=[214,150,70],b=[110,62,28];const L=(p,q,t)=>p.map((u,i)=>Math.round(u+(q[i]-u)*t));const r=v<.8?L(a,g,Math.max(0,v)/.8):L(g,b,Math.min(1,(v-.8)/.6));return`rgb(${r})`}
+function bgDraw(){const c=BG.cx,P=BG.ph,T=BG.t;c.clearRect(0,0,400,400);
+  /* 불빛 */const fg=c.createRadialGradient(200,330,10,200,330,220);fg.addColorStop(0,`rgba(255,${140+Math.sin(T*9)*20|0},40,.55)`);fg.addColorStop(1,'rgba(255,90,20,0)');c.fillStyle=fg;c.fillRect(0,0,400,400);
+  c.save();if(BG.flipA>0){const k=Math.cos(BG.flipA*Math.PI);c.translate(200,200);c.scale(1,Math.abs(k)<.05?.05:k);c.translate(-200,-200)}
+  /* 손잡이 */c.fillStyle='#2b2b30';c.fillRect(170,290,16,110);c.fillRect(214,290,16,110);c.fillStyle='#8a5a35';c.fillRect(166,350,24,50);c.fillRect(210,350,24,50);
+  /* 틀 */c.fillStyle='#38383e';c.beginPath();c.roundRect(14,112,372,176,26);c.fill();c.strokeStyle='#55555c';c.lineWidth=3;c.stroke();
+  BG.m.forEach((m,i)=>{c.save();bgFish(c,m.x,m.y);c.fillStyle='#1d1d22';c.fill();c.clip();
+    const amt=m.a+m.b;if(amt>0){const cv=P==='open'||m.took?Math.min(...BG.cook):Math.max(0,BG.cook[0]*.6);c.fillStyle=bgCol(cv);c.beginPath();c.arc(m.px,m.py,Math.sqrt(Math.min(1.25,amt))*100,0,Math.PI*2);c.fill();
+      if(P==='open'||m.took){c.strokeStyle='rgba(90,50,20,.45)';c.lineWidth=2.5;for(let q=-1;q<=1;q++){c.beginPath();c.arc(m.x+q*22+10,m.y-4,12,Math.PI*.15,Math.PI*.85);c.stroke()}c.fillStyle='rgba(60,30,10,.8)';c.beginPath();c.arc(m.x+48,m.y-10,4,0,7);c.fill()}}
+    if(m.f&&m.b<.35){c.fillStyle=m.f==='팥'?'#5e2424':'#f6dc8a';c.beginPath();c.ellipse(m.x+6,m.y,30,18,0,0,7);c.fill();c.fillStyle='rgba(255,255,255,.18)';c.beginPath();c.ellipse(m.x,m.y-6,10,5,0,0,7);c.fill()}
+    c.restore();
+    if(P==='pour1'||P==='pour2'){c.save();bgFish(c,m.x,m.y,.72);c.setLineDash([5,5]);c.strokeStyle='rgba(255,230,170,.55)';c.lineWidth=2;c.stroke();c.restore();const v=P==='pour1'?m.a:m.b;c.fillStyle='rgba(0,0,0,.5)';c.fillRect(m.x-40,m.y+52,80,8);c.fillStyle=v>=.5?'#8fe08a':'#f2c46a';c.fillRect(m.x-40,m.y+52,80*Math.min(1,v/.5),8)}
+    if(m.took){c.fillStyle='rgba(20,14,10,.7)';c.save();bgFish(c,m.x,m.y);c.fill();c.restore();c.fillStyle='#f6efdd';c.font='600 15px sans-serif';c.textAlign='center';c.fillText('꺼냄 ✓',m.x,m.y+5)}});
+  /* 주전자 줄기 */if(BG.hold>=0){const m=BG.m[BG.hold];c.strokeStyle='#f4e3b5';c.lineWidth=7;c.lineCap='round';c.beginPath();c.moveTo(m.px+30,10);c.quadraticCurveTo(m.px+20,m.py-80,m.px,m.py);c.stroke();c.fillStyle='#c9c2b5';c.beginPath();c.roundRect(m.px+10,-20,70,36,10);c.fill()}
+  /* 뚜껑 */if(BG.lid>.02){c.save();c.globalAlpha=Math.min(1,BG.lid*1.3);c.translate(0,(1-BG.lid)*-160);c.fillStyle='#2f2f35';c.beginPath();c.roundRect(14,112,372,176,26);c.fill();c.strokeStyle='#4a4a52';c.lineWidth=3;c.stroke();BG.m.forEach(m=>{c.save();bgFish(c,m.x,m.y,.9);c.strokeStyle='#45454d';c.lineWidth=4;c.stroke();c.restore()});c.restore()}
+  c.restore();
+  BG.steam.forEach(s=>{c.fillStyle=`rgba(255,255,255,${s.a*.16})`;c.beginPath();c.arc(s.x,s.y,10+(1-s.a)*14,0,7);c.fill()});
+  if(P==='cookA'||P==='cookB'){const v=BG.cook[BG.side],x0=60,w=280,y=50;c.fillStyle='rgba(0,0,0,.55)';c.beginPath();c.roundRect(x0,y,w,16,8);c.fill();c.fillStyle='rgba(255,210,90,.45)';c.fillRect(x0+w*(.65/1.4),y,w*(.4/1.4),16);c.fillStyle='rgba(200,60,40,.45)';c.fillRect(x0+w*(1.15/1.4),y,w*(.25/1.4),16);
+    c.fillStyle='#fff';c.fillRect(x0+w*Math.min(1,v/1.4)-2,y-4,4,24);c.font='600 13px sans-serif';c.textAlign='center';c.fillStyle='#f6efdd';c.fillText(v<.65?'굽는 중…':v<1.05?'지금이 딱 좋아요!':v<1.15?'조금 진해지는 중':'타고 있어요!',200,y+38)}}
+function bgFinish(){bgClose();const B=bung;if(!B)return;const fills=BG.m.map(m=>m.f||'팥');B.fill=fills[0]===fills[1]?fills[0]:'섞음';
+  B.fish.forEach((f,i)=>{f.visible=true;f.scale.setScalar(1);if(f.userData.fill)f.remove(f.userData.fill);const b=new THREE.Mesh(new THREE.SphereGeometry(.03,10,8),clay(fills[i]==='팥'?'#6b2a2a':'#f7e4a0'));b.scale.set(1.4,1,.6);b.position.set(0,0,.04);f.add(b);f.userData.fill=b});
+  const v=Math.min(...BG.cook);B.cookA=B.cookB=Math.min(1.3,v)*8.5/2/.9;B.cooking=false;B.ph='open';B.pt=1;toast(BG.msg,2200);bLater(400,bEatMenu)}
 function updBung(dt){const B=bung;if(!B)return;if(player.pose!=='walk'||Math.hypot(player.x,player.z)>2.6){endBung();return}B.pt=(B.pt||0)+dt;const e=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
   const r=Math.hypot(player.x,player.z)||1,ux=player.x/r,uz=player.z/r;B.g.position.set(ux*.38,GH(0,0)+.55,uz*.38);B.g.rotation.y=Math.atan2(ux,uz);
   if(B.ph==='closeA')B.lidP.rotation.x=-1.9*(1-e(B.pt/.4));if(B.ph==='flip')B.g.rotation.z=Math.PI*e(B.pt/.6);if(B.ph==='open'){B.g.rotation.z=Math.PI*(1-e(B.pt/.5));B.lidP.rotation.x=-1.9*e((B.pt-.4)/.4)}
