@@ -292,11 +292,11 @@ const cloudTex=spriteTex((g,n)=>{const r=rng(3);for(let i=0;i<14;i++){const x=n*
 const plaidTex=spriteTex((g,n)=>{g.fillStyle='#b8423a';g.fillRect(0,0,n,n);g.fillStyle='rgba(240,230,210,.45)';for(let i=0;i<n;i+=16){g.fillRect(i,0,5,n);g.fillRect(0,i,n,5)}g.fillStyle='rgba(30,20,20,.25)';for(let i=8;i<n;i+=16){g.fillRect(i,0,2,n);g.fillRect(0,i,n,2)}});
 
 /* 하늘 */
-const skyU={uTop:{value:C('#3f7fd6')},uHor:{value:C('#bcdcf2')},uSunCol:{value:C('#ffd9a0')},uSunDir:{value:new THREE.Vector3(0,1,0)},uSun:{value:1},uT:{value:0},uCloud:{value:.2},uWind:{value:.4},uCL:{value:C('#ffffff')}};
+const skyU={uTop:{value:C('#3f7fd6')},uHor:{value:C('#bcdcf2')},uSunCol:{value:C('#ffd9a0')},uSunDir:{value:new THREE.Vector3(0,1,0)},uSun:{value:1},uT:{value:0},uCloud:{value:.2},uWind:{value:.4},uCL:{value:C('#ffffff')},uMid:{value:C('#ffe27a')},uMidA:{value:0},uGlow:{value:0}};
 const sky=new THREE.Mesh(new THREE.SphereGeometry(450,48,24),new THREE.ShaderMaterial({uniforms:skyU,side:THREE.BackSide,depthWrite:false,
   vertexShader:`varying vec3 vD;void main(){vD=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-  fragmentShader:`uniform vec3 uTop,uHor,uSunCol,uSunDir,uCL;uniform float uSun,uT,uCloud,uWind;varying vec3 vD;float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float ns(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hs(i),hs(i+vec2(1,0)),f.x),mix(hs(i+vec2(0,1)),hs(i+vec2(1,1)),f.x),f.y);}float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*ns(p);p*=2.03;a*=.5;}return v;}
-   void main(){vec3 d=normalize(vD);float y=d.y;vec3 sd=normalize(uSunDir);vec3 c=mix(uHor,uTop,pow(max(y,0.),.42));if(y<0.)c=uHor*.9;
+  fragmentShader:`uniform vec3 uTop,uHor,uSunCol,uSunDir,uCL,uMid;uniform float uSun,uT,uCloud,uWind,uMidA,uGlow;varying vec3 vD;float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float ns(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hs(i),hs(i+vec2(1,0)),f.x),mix(hs(i+vec2(0,1)),hs(i+vec2(1,1)),f.x),f.y);}float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*ns(p);p*=2.03;a*=.5;}return v;}
+   void main(){vec3 d=normalize(vD);float y=d.y;vec3 sd=normalize(uSunDir);float yy=max(y,0.);vec3 c=mix(uHor,uTop,pow(yy,.42));vec3 bd=yy<.22?mix(uHor,uMid,smoothstep(0.,.22,yy)):mix(uMid,uTop,pow(clamp((yy-.22)/.55,0.,1.),.8));c=mix(c,bd,uMidA);if(y<0.)c=uHor*.9;vec2 hz=normalize(d.xz+vec2(1e-4)),sz=normalize(sd.xz+vec2(1e-4));c+=uSunCol*uGlow*exp(-yy*5.)*pow(max(dot(hz,sz),0.),2.)*.55;
    float s=max(dot(d,sd),0.);c+=uSunCol*(pow(s,5.)*.22+pow(s,60.)*.35)*uSun;c+=vec3(1.,.96,.88)*smoothstep(.9994,.9998,s)*2.5*uSun;
    if(y>0.){vec2 uv=d.xz/(y+.1)*.8+vec2(uT*.006*(1.+uWind*2.),uT*.002);float n=fbm(uv*1.4);float cov=mix(.66,.2,uCloud);float cl=smoothstep(cov,cov+.3,n)*smoothstep(.0,.14,y);
     float sh=fbm(uv*1.4+sd.xz*.07);vec3 cc=uCL*(.62+.55*clamp(n-sh+.35,0.,1.));cc+=uSunCol*pow(s,3.)*.45*uSun;c=mix(c,cc,cl*.97);}
@@ -1164,7 +1164,7 @@ function autoWx(d,s){const doy=Math.floor((d-new Date(d.getFullYear(),0,0))/864e
   if(s===3)return'snow';if(s===1){const mo=d.getMonth()+1;if((mo===7||(mo===6&&d.getDate()>20))&&x<.55)return'monsoon';if(mo===8&&x<.08)return'storm'}const p=[[.22,.3,0],[.33,.27,0],[.14,.3,0],[0,.3,.3]][s];if(x<p[0])return'rain';if(x<p[0]+p[2])return'snow';if(x<p[0]+p[1]+p[2])return'cloudy';return'clear'}
 let flash=0,curSeason=-1,env={cloud:.1,rain:0,snow:0,storm:0},wind=.4,night=0,day=1;
 let envO=null,hostName='',hostSeen=0;const EV=()=>envO||{t:S.time,s:S.season,w:S.wx,g:S.glowPrev?1:0};
-function clock(){const d=new Date(),live=d.getHours()+d.getMinutes()/60,E=EV();const hour=E.t==='live'?live:{morning:7,noon:13,dusk:18.4,night:22.5}[E.t];
+function clock(){const d=new Date(),live=d.getHours()+d.getMinutes()/60,E=EV();const doy=d.getMonth()*30.4+d.getDate(),dl=12+2.4*Math.cos((doy-172)/365*Math.PI*2),sr=12.4-dl/2,ss=sr+dl;const hour=E.t==='live'?live:{dawn:sr-.45,morning:sr+.7,noon:13,dusk:ss-.15,night:22.5}[E.t];
   const season=E.s==='live'?seasonOf(d.getMonth()+1):+E.s;const wx=E.w==='auto'?autoWx(d,season):E.w;return{d,hour,season,wx}}
 function paintGround(s){const a=s===3?Math.max(0,Math.min(1,S.snowAcc||0)):0;paintedAcc=a;
   const gcol=s===3?C('#a3ab90').lerp(C('#eaf2f4'),a):C(['#a4d873','#78c45c','#d2b860'][s]);grassU.uCol.value.copy(gcol);
@@ -1182,6 +1182,7 @@ function applySeason(s){curSeason=s;const r=rng(51);
   grass.count=Math.min(s===3?1500:NG,QG[S.q]);const fc=[['#f7a8c4','#ffe36e','#ffffff','#c9a8f0'],['#ffffff','#ffe36e','#8fb6ff'],['#e8e2f8','#c9a8f0'],['#ffffff']][s];
   for(let i=0;i<NF;i++)flowers.setColorAt(i,C(fc[Math.floor(r()*fc.length)]));flowers.instanceColor.needsUpdate=true;flowers.count=[NF,180,60,0][s];seasonFlora(s);
   const dc=s===0?['#f7c4d6','#fbe0e8']:s===2?['#e0762f','#c9432f','#e8b33c']:['#ffffff'],A=drift.geometry.attributes.aC.array;for(let i=0;i<ND;i++){const c=C(dc[i%dc.length]);A.set([c.r,c.g,c.b,.95],i*4)}drift.geometry.attributes.aC.needsUpdate=true}
+const TWM={t0:C('#27386f'),t:C('#78b2ec'),m0:C('#f6c48e'),m:C('#ffe680'),h0:C('#ffd2a0'),h:C('#fff8e6')},TWE={t0:C('#3a2a66'),t:C('#6c4fa6'),m0:C('#c78ab8'),m:C('#8fc3ea'),h0:C('#e8673a'),h:C('#ff9348')};
 const SKY={nT:C('#040814'),nH:C('#111b36'),dT:C('#6aa9ec'),dH:C('#d6edfb'),uT:C('#2b3a6e'),uH:C('#f0915e'),gD:C('#8d97a1'),gN:C('#15181e')};
 const tmpA=new THREE.Color(),tmpB=new THREE.Color(),sunDir=new THREE.Vector3();
 function updateEnv(dt,ck){
@@ -1191,8 +1192,11 @@ function updateEnv(dt,ck){
   day=sst(-.08,.22,sunDir.y);const tw=Math.max(0,1-Math.abs(sunDir.y-.02)/.2);night=1-sst(-.2,.02,sunDir.y);
   const tgt={clear:[.12,0,0,0],cloudy:[.78,0,0,0],rain:[.96,1,0,0],monsoon:[1,1,0,.35],storm:[1,1,0,1],snow:[.85,0,1,0]}[ck.wx]||[.12,0,0,0];const k=Math.min(1,dt*.6);env.cloud=lerp(env.cloud,tgt[0],k);env.rain=lerp(env.rain,tgt[1],k);env.snow=lerp(env.snow,tgt[2],k);env.storm=lerp(env.storm||0,tgt[3],k);
   const cl=env.cloud;tmpA.copy(SKY.nT).lerp(SKY.dT,day).lerp(SKY.uT,tw*.6);tmpB.copy(SKY.nH).lerp(SKY.dH,day).lerp(SKY.uH,tw*.75);
+  const twW=sst(-.2,-.03,sunDir.y)*(1-sst(.12,.32,sunDir.y)),morn=p<.5,clr=1-cl*.75,TW=morn?TWM:TWE,pre=sst(-.2,.04,sunDir.y);
+  if(twW>0){const a=twW*clr;tmpA.lerp(TW.t0.clone().lerp(TW.t,pre),a);tmpB.lerp(TW.h0.clone().lerp(TW.h,pre),a)}
+  skyU.uMid.value.copy(TW.m0).lerp(TW.m,pre);skyU.uMidA.value=twW*clr;skyU.uGlow.value=twW*clr*(morn?1.1:1.4);
   const gray=SKY.gN.clone().lerp(SKY.gD,day);tmpA.lerp(gray,cl*.75);tmpB.lerp(gray,cl*.7);if(ck.season===3)tmpB.lerp(C('#dfe6ee'),.15*day);
-  skyU.uTop.value.copy(tmpA);skyU.uHor.value.copy(tmpB);skyU.uSunDir.value.copy(sunDir);skyU.uSun.value=(1-cl*.85)*sst(-.1,.05,sunDir.y);skyU.uCloud.value=cl;skyU.uWind.value=wind;skyU.uCL.value.copy(gray).lerp(C('#ffffff'),day*(1-cl*.5)).lerp(C('#f4a27c'),tw*.55);skyU.uSunCol.value.set(tw>.3?'#ffb070':'#fff0c8');
+  skyU.uTop.value.copy(tmpA);skyU.uHor.value.copy(tmpB);skyU.uSunDir.value.copy(sunDir);skyU.uSun.value=(1-cl*.85)*sst(-.1,.05,sunDir.y);skyU.uCloud.value=cl;skyU.uWind.value=wind;skyU.uCL.value.copy(gray).lerp(C('#ffffff'),day*(1-cl*.5)).lerp(C('#f4a27c'),tw*.55);skyU.uSunCol.value.set(twW>.3?(morn?'#fff0b0':'#ff8a3c'):'#fff0c8');if(twW>.2)skyU.uCL.value.lerp(morn?C('#fff4dc'):C('#e89a8c'),twW*.5);
   scene.fog.color.copy(tmpB);fogU.uFogC.value.copy(tmpB);const far=170-env.rain*70-env.snow*85;scene.fog.far=far;fogU.uFogF.value=far;
   hemi.color.copy(tmpA).lerp(C('#ffffff'),.3);hemi.groundColor.set(ck.season===3?'#8a9399':'#3a4426');hemi.intensity=.16+.7*day*(1-.25*cl)+.05*(1-night);
   const sT=new THREE.Vector3(player.x,0,player.z);sun.target.position.copy(sT);sun.position.copy(sunDir).multiplyScalar(70).add(sT);sun.color.set(tw>.3?'#ffb47a':'#fff4e0');sun.intensity=Math.max(0,1*day*(1-.65*cl));
@@ -1644,7 +1648,7 @@ function syncPeers(peers){const seen=new Set();for(const p0 of peers){if(p0.same
     const cl=v=>Math.max(-100,Math.min(100,+v||0));r.tx=cl(pr.x);r.tz=cl(pr.z);r.tr=+pr.r||0;r.lift=Math.min(34,Math.max(-1.2,+pr.l||0));r.walking=!!pr.w}
   for(const [k,r] of remotes)if(!seen.has(k)){scene.remove(r.g);remotes.delete(k);if(markEls.has('p'+k)){markEls.get('p'+k).remove();markEls.delete('p'+k)}}
   let hp=null;if(!isHost())for(const p of peers){if(!p.sameTab&&p.presence&&p.presence.hs===1&&p.presence.env){hp=p;break}}
-  if(hp){const e=hp.presence.env,one=(v,l,d)=>l.includes(v)?v:d;const nE={t:one(e.t,['live','morning','noon','dusk','night'],'live'),s:one(e.s,['live','0','1','2','3'],'live'),w:one(e.w,['auto','clear','cloudy','rain','snow'],'auto'),g:e.g===1?1:0};
+  if(hp){const e=hp.presence.env,one=(v,l,d)=>l.includes(v)?v:d;const nE={t:one(e.t,['live','dawn','morning','noon','dusk','night'],'live'),s:one(e.s,['live','0','1','2','3'],'live'),w:one(e.w,['auto','clear','cloudy','rain','snow'],'auto'),g:e.g===1?1:0};
     const ch=JSON.stringify(nE)!==JSON.stringify(envO);envO=nE;const nm=okS(hp.presence.n,12)||'방장';if(!hostName||ch){if(!hostName)toast(`방장 ${nm}님이 정한 캠핑장 분위기를 따라요`,3500)}hostName=nm;if((e.f===1)!==!!S.fire){S.fire=e.f===1;$('bFire').textContent=S.fire?'모닥불 끄기':'모닥불 피우기'}hudT=0}
   if(hp&&hp.presence.world&&typeof hp.presence.world==='object'){const w=hp.presence.world,num=v=>Math.max(-100,Math.min(100,+v||0));
     const nw={s:w.s===1?1:w.s===0?0:null,c:['tent','glamp','hammock','van'].includes(w.c)?w.c:'tent',name:okS(w.n,14),props:(Array.isArray(w.p)?w.p:[]).slice(0,30).filter(a=>Array.isArray(a)&&PROPN[a[0]]).map((a,i)=>({k:a[0],x:num(a[1]),z:num(a[2]),ry:+a[3]||0,id:'h'+(parseInt(a[4])||i)})),
@@ -1770,7 +1774,7 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;const 
   posT-=dt;if(posT<=0){posT=3;S.pos=[+player.x.toFixed(2),+player.z.toFixed(2),+player.ry.toFixed(2)];save()}
   hudT-=dt;if(hudT<=0){hudT=1;const d=ck.d,days='일월화수목금토';const hh=Math.floor(ck.hour),mm=S.time==='live'?d.getMinutes():Math.round((ck.hour-hh)*60);
     $('hudDate').textContent=`${d.getMonth()+1}/${d.getDate()} (${days[d.getDay()]}) ${hh<12?'오전':'오후'} ${((hh+11)%12)+1}:${String(mm).padStart(2,'0')}${S.time==='live'?'':' 미리보기'}`;
-    {const ld=lunarDay(ck.d);$('hudWx').textContent=`${SEASONS[ck.season]} · ${WX[ck.wx]} · 음력 ${ld}일${ld===1?' 초하루':ld===15?' 보름':''}`}const live=EV().t==='live'&&EV().s==='live'&&EV().w==='auto',tl=hh<5||hh>=20?'밤':hh<9?'아침':hh<17?'낮':'노을';
+    {const ld=lunarDay(ck.d);$('hudWx').textContent=`${SEASONS[ck.season]} · ${WX[ck.wx]} · 음력 ${ld}일${ld===1?' 초하루':ld===15?' 보름':''}`}const live=EV().t==='live'&&EV().s==='live'&&EV().w==='auto',tl=hh<4||hh>=20?'밤':hh<6.5?'새벽':hh<9?'아침':hh<17?'낮':'노을';
     $('envSum').textContent=`${SEASONS[ck.season]} · ${WX[ck.wx]} · ${tl}${envO?' (방장 설정)':live?' (실시간)':' (직접 설정)'}`}
   R.render(scene,cam);updBubbles(dt);updMarks();requestAnimationFrame(frame)}
 
@@ -1784,7 +1788,7 @@ function seg(el,opts,get,set){el.innerHTML='';opts.forEach(([v,t])=>{const b=doc
 $('bGlow').setAttribute('aria-pressed',S.glowPrev);$('bGlow').textContent=S.glowPrev?'미리보기 끄기':'빛나는 들판 미리보기';
 $('bGlow').onclick=()=>{S.glowPrev=!S.glowPrev;save();$('bGlow').setAttribute('aria-pressed',S.glowPrev);$('bGlow').textContent=S.glowPrev?'미리보기 끄기':'빛나는 들판 미리보기';toast(S.glowPrev?(night>.5?'들판의 꽃들이 하나둘 빛나기 시작해요':'빛나는 들판은 밤에 보여요. 시간에서 \'밤\'을 골라 보세요'):'미리보기를 껐어요',3500)};
 $('bLive').onclick=()=>{S.time='live';S.season='live';S.wx='auto';save();seg($('segTime'),TOPT,()=>S.time,v=>S.time=v);seg($('segSeason'),SOPT,()=>S.season,v=>S.season=v);seg($('segWx'),WOPT,()=>S.wx,v=>S.wx=v);hudT=0;toast('지금 날짜·시간·계절로 맞췄어요')};
-const TOPT=[['live','지금'],['morning','아침'],['noon','낮'],['dusk','노을'],['night','밤']],SOPT=[['live','지금 계절'],['0','봄'],['1','여름'],['2','가을'],['3','겨울']],WOPT=[['auto','오늘 날씨'],['clear','맑음'],['cloudy','흐림'],['rain','비'],['monsoon','장마'],['storm','태풍'],['snow','눈']];
+const TOPT=[['live','지금'],['dawn','새벽'],['morning','아침'],['noon','낮'],['dusk','노을'],['night','밤']],SOPT=[['live','지금 계절'],['0','봄'],['1','여름'],['2','가을'],['3','겨울']],WOPT=[['auto','오늘 날씨'],['clear','맑음'],['cloudy','흐림'],['rain','비'],['monsoon','장마'],['storm','태풍'],['snow','눈']];
 seg($('segTime'),TOPT,()=>S.time,v=>{S.time=v;hudT=0});seg($('segSeason'),SOPT,()=>S.season,v=>{S.season=v;hudT=0});seg($('segWx'),WOPT,()=>S.wx,v=>{S.wx=v;hudT=0});
 const MIX=[['master','전체 크기'],['stream','시냇물'],['wind','바람과 풀잎'],['birds','새소리·동물'],['fire','장작 타는 소리'],['bugs','풀벌레·매미'],['rain','빗소리']];
 $('mix').innerHTML=MIX.map(([k,n])=>`<label for="m-${k}">${n}</label><input type="range" id="m-${k}" min="0" max="${k==='master'?150:100}" value="${Math.round(S.vol[k]*100)}"><output id="o-${k}">${Math.round(S.vol[k]*100)}</output>`+(k==='master'?'<span></span>':`<button id="t-${k}" aria-pressed="${S.on[k]!==false}" aria-label="${n} 켜고 끄기">${S.on[k]!==false?'켬':'끔'}</button>`)).join('');
